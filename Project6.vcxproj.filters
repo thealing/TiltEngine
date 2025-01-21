@@ -18,63 +18,63 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\move.h">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\bitboards.h">
+    <ClInclude Include="src\hash.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\squares.h">
+    <ClInclude Include="src\history_heuristic.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\pieces.h">
+    <ClInclude Include="src\search.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\bitmasks.h">
+    <ClInclude Include="src\evaluator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\magics.h">
+    <ClInclude Include="src\scores.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\position.h">
+    <ClInclude Include="src\hasher.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\moves.h">
+    <ClInclude Include="src\game.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game.h">
+    <ClInclude Include="src\move.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\hasher.h">
+    <ClInclude Include="src\moves.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\random.h">
+    <ClInclude Include="src\position.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\evaluator.h">
+    <ClInclude Include="src\magics.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\scores.h">
+    <ClInclude Include="src\bitboards.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\values.h">
+    <ClInclude Include="src\bitmasks.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\search.h">
+    <ClInclude Include="src\pieces.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\time.h">
+    <ClInclude Include="src\random.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\transposition_table.h">
+    <ClInclude Include="src\squares.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\history_heuristic.h">
+    <ClInclude Include="src\values.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\hash.h">
+    <ClInclude Include="src\time.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\transposition_table.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

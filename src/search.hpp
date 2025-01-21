@@ -182,14 +182,18 @@ public:
 			}
 		}
 		Score position_score;
+		if constexpr (ALWAYS_REEVALUATE)
+		{
+			// not much slowdown because the TT entry is being loaded by _mm_prefetch
+			evaluator.evaluate_position(&_evaluation_stack[_ply], position);
+		}
+		position_score = evaluator.get_evaluation_score(_evaluation_stack[_ply]);
+		if constexpr (color == COLOR_BLACK)
+		{
+			position_score = -position_score;
+		}
 		if constexpr (quiescence)
 		{
-			// we still have a free eval()
-			position_score = evaluator.get_evaluation_score(_evaluation_stack[_ply]);
-			if constexpr (color == COLOR_BLACK)
-			{
-				position_score = -position_score;
-			}
 			if (position_score > alpha)
 			{
 				if (position_score >= beta)
@@ -222,14 +226,6 @@ public:
 			if (entry.depth >= remaining_depth && ((entry_score <= alpha && upper) || (entry_score >= beta && lower)))
 			{
 				return entry_score;
-			}
-		}
-		if constexpr (!quiescence)
-		{
-			position_score = evaluator.get_evaluation_score(_evaluation_stack[_ply]);
-			if constexpr (color == COLOR_BLACK)
-			{
-				position_score = -position_score;
 			}
 		}
 		Score current_score = position_score;
@@ -323,6 +319,7 @@ public:
 				move_scores[i] = -1;
 				continue;
 			}
+			_mm_prefetch((const char*)&_transposition_table.get_entry(_hash_stack[_ply]), _MM_HINT_ENTA);
 			_move_stack[_ply - 1] = move;
 			legal_move_count++;
 			if (move.captured_piece == PIECE_NONE)
