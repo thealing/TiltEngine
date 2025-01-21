@@ -58,12 +58,20 @@ private:
 	inline Value get_mobility_value(const Position& position) const
 	{
 		Value value = 0;
-		const Bitboard occupied_mask = position.colors[COLOR_WHITE] | position.colors[COLOR_BLACK];
-		const Bitboard empty_mask = ~occupied_mask;
+		Bitboard occupied_mask = position.colors[COLOR_WHITE] | position.colors[COLOR_BLACK];
+		Bitboard empty_mask = ~occupied_mask;
+		Bitboard pawn_move_masks[COLOR_COUNT];
+		Bitboard pawn_capture_masks[COLOR_COUNT];
+		get_pawn_masks<COLOR_WHITE>(position, pawn_move_masks[COLOR_WHITE], pawn_capture_masks[COLOR_WHITE]);
+		get_pawn_masks<COLOR_BLACK>(position, pawn_move_masks[COLOR_BLACK], pawn_capture_masks[COLOR_BLACK]);
 		for (Color color = 0; color < COLOR_COUNT; color++)
 		{
+			Color opponent_color = flip_color(color);
 			Bitboard color_mask =  position.colors[color];
-			Bitboard opponent_mask =  position.colors[flip_color(color)];
+			Bitboard opponent_mask =  position.colors[opponent_color];
+			value += _move_values[PIECE_PAWN] * count_squares(pawn_move_masks[color]);
+			value += _attack_values[PIECE_PAWN] * count_squares(opponent_mask & pawn_capture_masks[color]);
+			value += _defense_values[PIECE_PAWN] * count_squares(color_mask & pawn_capture_masks[color]);
 			for (Piece piece = PIECE_KNIGHT; piece <= PIECE_KING; piece++)
 			{
 				Bitboard src_mask = color_mask & position.pieces[piece];
@@ -89,40 +97,29 @@ private:
 							dst_mask = bitmasks.get_king_mask(src_square);
 							break;
 					}
-					uint64_t move_mask = dst_mask & empty_mask;
-					uint64_t attack_mask = dst_mask & opponent_mask;
-					uint64_t defense_mask = dst_mask & color_mask;
-					value += _move_values[piece] * count_squares(move_mask);
-					value += _attack_values[piece] * count_squares(attack_mask);
-					value += _defense_values[piece] * count_squares(defense_mask);
+					dst_mask &= ~pawn_capture_masks[opponent_color];
+					value += _move_values[piece] * count_squares(dst_mask & empty_mask);
+					value += _attack_values[piece] * count_squares(dst_mask & opponent_mask);
+					value += _defense_values[piece] * count_squares(dst_mask & color_mask);
 				}
 			}
 			value *= -1;
 		}
-		value += get_pawn_value<COLOR_WHITE>(position);
-		value -= get_pawn_value<COLOR_BLACK>(position);
 		return value;
 	}
 
 	template<Color color>
-	inline Value get_pawn_value(const Position& position) const
+	inline void get_pawn_masks(const Position& position, Bitboard& pawn_move_mask, Bitboard& pawn_capture_mask) const
 	{
 		const Bitboard color_mask = position.colors[color];
 		const Bitboard opponent_mask = position.colors[flip_color(color)];
 		const Bitboard occupied_mask = color_mask | opponent_mask;
 		const Bitboard empty_mask = ~occupied_mask;
 		const Bitboard pawn_mask = color_mask & position.pieces[PIECE_PAWN];
-		const Bitboard pawn_move_mask = empty_mask & shift_forward<color>(pawn_mask);
+		pawn_move_mask = empty_mask & shift_forward<color>(pawn_mask);
 		const Bitboard pawn_left_capture_mask = shift_forward_left<color>(pawn_mask) & ~get_file_mask(FILE_H);
 		const Bitboard pawn_right_capture_mask = shift_forward_right<color>(pawn_mask) & ~get_file_mask(FILE_A);
-		const Bitboard pawn_capture_mask = pawn_left_capture_mask | pawn_right_capture_mask;
-		const Bitboard pawn_attack_mask = opponent_mask & pawn_capture_mask;
-		const Bitboard pawn_defense_mask = color_mask & pawn_capture_mask;
-		Value value = 0;
-		value += _move_values[PIECE_PAWN] * count_squares(pawn_move_mask);
-		value += _attack_values[PIECE_PAWN] * count_squares(pawn_attack_mask);
-		value += _defense_values[PIECE_PAWN] * count_squares(pawn_defense_mask);
-		return value;
+		pawn_capture_mask = pawn_left_capture_mask | pawn_right_capture_mask;
 	}
 
 	inline Score get_position_weight(const Position& position) const
@@ -233,131 +230,131 @@ private:
 public:
 	inline constexpr Evaluator()
 	{
-		constexpr Score opening_move_values[PIECE_COUNT] = { 12, 24, 20, 9, 5, -13 };
-		constexpr Score endgame_move_values[PIECE_COUNT] = { 31, 13, 13, 15, 27, 16 };
-		constexpr Score opening_attack_values[PIECE_COUNT] = { 61, 14, 27, 16, -3, -79 };
-		constexpr Score endgame_attack_values[PIECE_COUNT] = { 22, 24, 39, 50, 64, 47 };
-		constexpr Score opening_defense_values[PIECE_COUNT] = { 14, 23, 37, 12, 5, 1 };
-		constexpr Score endgame_defense_values[PIECE_COUNT] = { 13, 17, 20, 43, 50, 19 };
+		constexpr Score opening_move_values[PIECE_COUNT] = { 13, 17, 17, 10, 5, -9 };
+		constexpr Score endgame_move_values[PIECE_COUNT] = { 21, 12, 13, 14, 29, -8 };
+		constexpr Score opening_attack_values[PIECE_COUNT] = { 65, 16, 29, 26, 2, -84 };
+		constexpr Score endgame_attack_values[PIECE_COUNT] = { 17, 27, 44, 48, 74, 24 };
+		constexpr Score opening_defense_values[PIECE_COUNT] = { 13, 14, 19, 11, 5, 3 };
+		constexpr Score endgame_defense_values[PIECE_COUNT] = { 8, 13, 17, 32, 53, -5 };
 		constexpr Score opening_pawn_table[SQUARE_COUNT] = {
 			100, 100, 100, 100, 100, 100, 100, 100,
-			169, 175, 155, 162, 146, 146, 135, 132,
-			99, 111, 131, 132, 151, 150, 130, 88,
-			71, 113, 98, 120, 124, 116, 124, 64,
-			58, 88, 104, 119, 132, 117, 111, 64,
-			65, 86, 97, 98, 115, 120, 144, 85,
-			66, 102, 86, 98, 108, 143, 158, 81,
+			178, 194, 167, 192, 166, 170, 129, 109,
+			101, 102, 122, 132, 169, 178, 137, 84,
+			72, 86, 84, 95, 92, 102, 92, 62,
+			60, 69, 82, 93, 107, 95, 90, 60,
+			59, 76, 73, 78, 96, 94, 126, 72,
+			71, 92, 80, 85, 90, 135, 145, 81,
 			100, 100, 100, 100, 100, 100, 100, 100,
 		};
 		constexpr Score endgame_pawn_table[SQUARE_COUNT] = {
 			100, 100, 100, 100, 100, 100, 100, 100,
-			350, 333, 292, 272, 254, 254, 273, 310,
-			239, 249, 227, 205, 193, 190, 225, 223,
-			155, 141, 128, 120, 107, 117, 128, 131,
-			127, 118, 102, 97, 96, 91, 105, 103,
-			112, 112, 97, 106, 99, 96, 94, 92,
-			124, 113, 111, 104, 109, 102, 100, 92,
+			380, 370, 338, 315, 327, 316, 346, 370,
+			248, 255, 237, 216, 208, 202, 238, 234,
+			162, 149, 136, 130, 122, 129, 142, 141,
+			133, 124, 110, 106, 107, 103, 116, 112,
+			120, 117, 105, 114, 109, 105, 107, 103,
+			131, 122, 118, 118, 124, 113, 112, 103,
 			100, 100, 100, 100, 100, 100, 100, 100,
 		};
 		constexpr Score opening_knight_table[SQUARE_COUNT] = {
-			278, 294, 298, 296, 305, 286, 297, 291,
-			282, 291, 334, 302, 298, 310, 304, 297,
-			289, 314, 298, 309, 325, 322, 329, 308,
-			311, 317, 263, 318, 289, 328, 329, 335,
-			312, 296, 271, 259, 292, 275, 309, 322,
-			297, 279, 265, 272, 287, 281, 319, 309,
-			307, 291, 275, 304, 306, 306, 300, 322,
-			292, 335, 282, 293, 316, 289, 339, 298,
+			240, 286, 293, 298, 314, 277, 295, 278,
+			259, 278, 393, 325, 323, 352, 314, 300,
+			280, 354, 346, 368, 398, 399, 387, 333,
+			324, 351, 319, 397, 370, 397, 369, 368,
+			337, 323, 335, 344, 365, 354, 355, 356,
+			322, 314, 327, 323, 345, 339, 360, 332,
+			317, 286, 312, 347, 341, 352, 322, 345,
+			275, 342, 275, 303, 336, 307, 348, 299,
 		};
 		constexpr Score endgame_knight_table[SQUARE_COUNT] = {
-			284, 293, 310, 295, 307, 288, 290, 284,
-			299, 315, 297, 314, 302, 294, 303, 290,
-			295, 299, 301, 302, 297, 294, 298, 294,
-			321, 306, 308, 315, 305, 300, 302, 317,
-			309, 298, 304, 311, 304, 300, 312, 310,
-			307, 307, 277, 297, 289, 283, 288, 303,
-			296, 297, 292, 296, 301, 287, 301, 295,
-			296, 285, 295, 309, 305, 301, 284, 292,
+			275, 296, 329, 304, 324, 294, 283, 261,
+			311, 335, 319, 342, 334, 319, 323, 292,
+			309, 321, 329, 331, 325, 327, 317, 308,
+			338, 328, 340, 346, 339, 331, 326, 336,
+			329, 326, 331, 344, 339, 335, 340, 334,
+			327, 327, 309, 328, 324, 311, 311, 324,
+			310, 317, 318, 325, 328, 313, 323, 302,
+			300, 314, 321, 334, 330, 326, 309, 287,
 		};
 		constexpr Score opening_bishop_table[SQUARE_COUNT] = {
-			306, 301, 291, 296, 300, 296, 301, 305,
-			297, 307, 285, 290, 305, 311, 309, 266,
-			320, 309, 308, 297, 300, 310, 318, 352,
-			315, 324, 290, 303, 286, 305, 328, 326,
-			322, 309, 289, 281, 301, 278, 303, 332,
-			354, 326, 304, 288, 295, 332, 322, 358,
-			322, 345, 321, 311, 311, 316, 367, 319,
-			308, 324, 354, 320, 329, 326, 300, 316,
+			318, 310, 277, 289, 297, 289, 304, 318,
+			297, 331, 284, 289, 321, 333, 329, 260,
+			344, 335, 351, 332, 326, 349, 353, 376,
+			333, 366, 323, 365, 340, 359, 366, 355,
+			339, 350, 355, 341, 375, 330, 350, 362,
+			371, 368, 355, 362, 356, 386, 360, 385,
+			346, 382, 370, 354, 365, 365, 405, 348,
+			320, 350, 377, 343, 357, 357, 304, 335,
 		};
 		constexpr Score endgame_bishop_table[SQUARE_COUNT] = {
-			308, 303, 301, 306, 311, 305, 306, 303,
-			319, 305, 308, 288, 304, 307, 305, 302,
-			327, 304, 294, 291, 291, 296, 307, 327,
-			333, 304, 298, 284, 282, 295, 294, 328,
-			322, 305, 297, 286, 271, 294, 299, 323,
-			319, 309, 302, 298, 295, 291, 312, 318,
-			314, 302, 300, 308, 313, 303, 296, 304,
-			306, 319, 318, 323, 321, 323, 311, 310,
+			327, 316, 313, 321, 324, 318, 319, 316,
+			334, 321, 327, 308, 322, 322, 319, 321,
+			341, 318, 310, 309, 311, 315, 322, 341,
+			344, 320, 318, 302, 302, 318, 314, 344,
+			339, 319, 317, 311, 301, 318, 321, 340,
+			337, 327, 324, 329, 329, 319, 326, 338,
+			335, 323, 330, 336, 339, 323, 325, 323,
+			327, 348, 347, 345, 342, 346, 336, 331,
 		};
 		constexpr Score opening_rook_table[SQUARE_COUNT] = {
-			516, 516, 509, 521, 517, 506, 507, 510,
-			517, 521, 530, 527, 524, 522, 508, 514,
-			495, 504, 505, 505, 500, 503, 514, 502,
-			486, 484, 493, 506, 499, 510, 490, 492,
-			470, 482, 496, 488, 504, 489, 501, 485,
-			466, 482, 491, 493, 501, 503, 491, 474,
-			468, 500, 495, 509, 519, 518, 501, 444,
-			502, 509, 524, 535, 544, 510, 488, 508,
+			514, 522, 503, 536, 532, 506, 509, 510,
+			508, 523, 541, 548, 550, 546, 514, 519,
+			478, 508, 515, 521, 511, 524, 541, 506,
+			467, 481, 495, 522, 517, 531, 497, 481,
+			458, 473, 497, 497, 520, 499, 523, 482,
+			458, 480, 498, 499, 515, 521, 507, 472,
+			460, 501, 495, 513, 531, 531, 518, 435,
+			496, 507, 527, 538, 544, 516, 487, 502,
 		};
 		constexpr Score endgame_rook_table[SQUARE_COUNT] = {
-			540, 533, 537, 536, 534, 530, 526, 526,
-			532, 529, 529, 528, 516, 521, 525, 530,
-			521, 515, 510, 510, 506, 499, 507, 515,
-			518, 502, 511, 502, 499, 501, 490, 518,
-			515, 503, 504, 494, 491, 480, 488, 500,
-			509, 502, 489, 492, 480, 479, 491, 497,
-			512, 501, 502, 504, 491, 491, 494, 512,
-			510, 514, 512, 505, 498, 504, 511, 494,
+			567, 565, 569, 568, 570, 568, 566, 560,
+			560, 561, 557, 555, 547, 557, 564, 561,
+			567, 567, 562, 568, 558, 550, 555, 557,
+			567, 558, 569, 556, 560, 554, 547, 568,
+			560, 555, 556, 549, 545, 536, 539, 546,
+			548, 548, 535, 537, 528, 524, 538, 536,
+			546, 542, 544, 545, 533, 531, 534, 549,
+			542, 551, 550, 546, 543, 538, 547, 528,
 		};
 		constexpr Score opening_queen_table[SQUARE_COUNT] = {
-			917, 916, 918, 915, 931, 920, 920, 941,
-			898, 868, 902, 907, 902, 925, 927, 945,
-			903, 885, 892, 894, 912, 918, 931, 967,
-			892, 871, 867, 865, 880, 904, 912, 927,
-			902, 869, 879, 863, 879, 881, 904, 920,
-			899, 907, 876, 888, 878, 897, 913, 921,
-			896, 894, 915, 909, 918, 905, 891, 912,
-			915, 907, 910, 920, 908, 885, 901, 894,
+			907, 912, 922, 916, 951, 935, 937, 956,
+			882, 850, 892, 906, 897, 939, 940, 964,
+			901, 885, 911, 907, 932, 945, 956, 986,
+			878, 879, 874, 883, 899, 925, 921, 928,
+			905, 872, 898, 878, 903, 899, 920, 919,
+			892, 911, 884, 898, 893, 907, 920, 924,
+			884, 891, 917, 907, 918, 911, 897, 918,
+			907, 907, 912, 924, 900, 880, 903, 882,
 		};
 		constexpr Score endgame_queen_table[SQUARE_COUNT] = {
-			913, 926, 927, 925, 937, 928, 921, 938,
-			910, 898, 905, 912, 914, 923, 917, 936,
-			910, 888, 872, 898, 904, 905, 915, 946,
-			922, 892, 870, 863, 877, 894, 922, 943,
-			911, 896, 876, 870, 867, 883, 914, 935,
-			914, 879, 878, 864, 865, 889, 910, 921,
-			912, 896, 879, 884, 883, 893, 890, 907,
-			917, 902, 904, 920, 914, 901, 904, 899,
+			909, 933, 936, 933, 948, 942, 934, 952,
+			907, 904, 900, 919, 928, 927, 918, 947,
+			914, 888, 851, 906, 910, 910, 918, 957,
+			946, 901, 869, 860, 885, 897, 947, 970,
+			910, 913, 875, 873, 867, 890, 928, 958,
+			926, 868, 884, 875, 869, 898, 917, 940,
+			929, 901, 884, 898, 897, 898, 895, 912,
+			928, 913, 916, 918, 942, 919, 912, 897,
 		};
 		constexpr Score opening_king_table[SQUARE_COUNT] = {
-			0, 1, 2, 1, 0, 2, 3, 1,
-			3, 3, 3, 4, 2, 5, 2, 1,
-			5, 6, 8, 2, 4, 12, 12, 5,
-			1, 3, 5, 3, 1, 3, 2, -4,
-			-6, 0, 0, -10, -10, -8, -10, -16,
-			0, 0, -5, -16, -24, -15, 5, -14,
-			-1, 13, -1, -51, -37, -2, 56, 36,
-			-24, 48, 14, -67, 12, -50, 54, 21,
+			-6, 2, 3, 0, -7, -2, 2, 0,
+			3, 14, 11, 17, 8, 13, 8, -8,
+			4, 22, 27, 7, 14, 31, 33, -2,
+			-4, 13, 19, 4, 4, 11, 21, -22,
+			-21, 17, 0, -29, -33, -16, 1, -47,
+			-6, 24, -8, -35, -46, -30, 20, -27,
+			0, 53, 0, -66, -48, -5, 53, 40,
+			-51, 57, 14, -94, 9, -43, 52, 21,
 		};
 		constexpr Score endgame_king_table[SQUARE_COUNT] = {
-			-3, 0, 2, 4, 8, 16, 14, 10,
-			6, 5, 5, 4, 3, 22, 9, 18,
-			25, 2, 10, 0, 4, 33, 33, 32,
-			9, -1, 7, 12, 4, 14, 0, 16,
-			-6, -28, 1, 4, 10, 0, -19, 0,
-			-4, -27, -9, 0, 2, 2, -12, 5,
-			-17, -34, -15, -7, -3, -14, -34, -10,
-			-30, -33, -10, 6, -8, 10, -23, -30,
+			-38, -26, -19, -19, -15, 6, 0, -15,
+			-12, 26, 28, 29, 27, 52, 33, 2,
+			-1, 28, 35, 26, 30, 60, 60, -3,
+			-26, 26, 33, 37, 29, 37, 24, -23,
+			-46, -2, 27, 30, 33, 20, 2, -40,
+			-41, -1, 15, 26, 28, 24, 10, -32,
+			-53, -9, 14, 19, 23, 15, 0, -44,
+			-104, -62, -38, -27, -37, -27, -50, -103,
 		};
 		const Score* opening_piece_tables[] = {
 			opening_pawn_table,
@@ -401,8 +398,8 @@ public:
 	}
 
 private:
-	constexpr static Score _weights[PIECE_COUNT] = { -56, 235, 267, 440, 961, -62 };
-	constexpr static Score _total_weight = 4670;
+	constexpr static Score _weights[PIECE_COUNT] = { -55, 139, 212, 368, 1014, -138 };
+	constexpr static Score _total_weight = 3748;
 
 	Value _move_values[PIECE_COUNT] = {};
 	Value _attack_values[PIECE_COUNT] = {};

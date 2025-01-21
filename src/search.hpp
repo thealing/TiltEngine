@@ -400,6 +400,7 @@ public:
 		{
 			entry_score -= current_depth;
 		}
+		// should age be ignored when the PV changes!?
 		entry.age++;
 		if (hit || legal_move_count == 0 || remaining_depth > entry.depth - entry.age)
 		{
