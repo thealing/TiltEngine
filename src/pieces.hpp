@@ -5,18 +5,24 @@
 using Piece = int8_t;
 using Color = int8_t;
 
-inline constexpr Piece PIECE_NONE = -1;
-inline constexpr Piece PIECE_PAWN = 0;
-inline constexpr Piece PIECE_KNIGHT = 1;
-inline constexpr Piece PIECE_BISHOP = 2;
-inline constexpr Piece PIECE_ROOK = 3;
-inline constexpr Piece PIECE_QUEEN = 4;
-inline constexpr Piece PIECE_KING = 5;
-inline constexpr Piece PIECE_COUNT = 6;
+enum : Piece 
+{ 
+	PIECE_NONE = -1,
+	PIECE_PAWN,
+	PIECE_KNIGHT,
+	PIECE_BISHOP,
+	PIECE_ROOK,
+	PIECE_QUEEN,
+	PIECE_KING,
+	PIECE_COUNT
+};
 
-inline constexpr Color COLOR_WHITE = 0;
-inline constexpr Color COLOR_BLACK = 1;
-inline constexpr Color COLOR_COUNT = 2;
+enum : Color 
+{ 
+	COLOR_WHITE,
+	COLOR_BLACK,
+	COLOR_COUNT
+};
 
 inline constexpr Color flip_color(Color color)
 {

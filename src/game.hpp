@@ -116,7 +116,7 @@ struct Game
 	template<Color color>
 	inline int64_t perft(int depth, Move* moves)
 	{
-		constexpr Color opponent_color = flip_color(color);
+		constexpr Color enemy = flip_color(color);
 		int64_t result = 0;
 		Position& current_position = _position_stack[_ply];
 		Position& next_position = _position_stack[_ply + 1];
@@ -134,7 +134,7 @@ struct Game
 			}
 			else
 			{
-				result += perft<opponent_color>(depth - 1, end);
+				result += perft<enemy>(depth - 1, end);
 			}
 		}
 		_ply--;

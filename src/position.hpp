@@ -1,8 +1,8 @@
 #pragma once
 
-#include "magics.hpp"
+#include "sliders.hpp"
 #include "move.hpp"
-#include "moves.hpp"
+#include "moves_helper.hpp"
 
 #include <ctype.h>
 
@@ -173,7 +173,7 @@ struct Position
 	{
 		Square src_square = value & 0x3F;
 		Square dst_square = (value >> 6) & 0x3F;
-		MoveType type = value >> 12;
+		MoveType type = MoveType(value >> 12);
 		return Move{ src_square, dst_square, type, get_piece(dst_square) };
 	}
 
@@ -187,6 +187,11 @@ struct Position
 			}
 		}
 		return PIECE_NONE;
+	}
+
+	inline Bitboard get_mask(Piece piece, Color color) const
+	{
+		return pieces[piece] & colors[color];
 	}
 
 	inline Move* generate_moves(Move* move) const
@@ -218,18 +223,19 @@ struct Position
 	template<Color color, bool captures_only>
 	inline Move* generate_moves(Move* move) const
 	{
+		constexpr Color enemy = flip_color(color);
 		constexpr Rank starting_rank = get_starting_rank<color>();
 		constexpr Bitboard starting_rank_mask = get_rank_mask(starting_rank);
 		constexpr Rank promotion_rank = get_promotion_rank<color>();
 		constexpr Bitboard promotion_rank_mask = get_rank_mask(promotion_rank);
-		const Bitboard color_mask = colors[color];
-		const Bitboard opponent_mask = colors[flip_color(color)];
-		const Bitboard occupied_mask = color_mask | opponent_mask;
-		const Bitboard empty_mask = ~occupied_mask;
-		const Bitboard pawn_mask = color_mask & pieces[PIECE_PAWN];
-		const Bitboard pawn_move_mask = empty_mask & shift_forward<color>(pawn_mask);
-		const Bitboard pawn_left_capture_mask = opponent_mask & shift_forward_left<color>(pawn_mask) & ~get_file_mask(FILE_H);
-		const Bitboard pawn_right_capture_mask = opponent_mask & shift_forward_right<color>(pawn_mask) & ~get_file_mask(FILE_A);
+		Bitboard color_mask = colors[color];
+		Bitboard enemy_mask = colors[enemy];
+		Bitboard occupied_mask = color_mask | enemy_mask;
+		Bitboard empty_mask = ~occupied_mask;
+		Bitboard pawn_mask = color_mask & pieces[PIECE_PAWN];
+		Bitboard pawn_move_mask = empty_mask & shift_forward<color>(pawn_mask);
+		Bitboard pawn_left_capture_mask = enemy_mask & shift_forward_left<color>(pawn_mask);
+		Bitboard pawn_right_capture_mask = enemy_mask & shift_forward_right<color>(pawn_mask);
 		Bitboard src_mask;
 		Bitboard dst_mask;
 		if constexpr (!captures_only)
@@ -253,7 +259,7 @@ struct Position
 			while (dst_mask != 0)
 			{
 				Square dst_square = pop_square(dst_mask);
-				Square src_square = move_backward<color>(move_backward<color>(dst_square));
+				Square src_square = move_backward<color, 2>(dst_square);
 				move->src_square = src_square;
 				move->dst_square = dst_square;
 				move->type = MOVE_TYPE_DOUBLE;
@@ -367,13 +373,13 @@ struct Position
 						move_mask = bitmasks.get_knight_mask(src_square);
 						break;
 					case PIECE_BISHOP:
-						move_mask = magics.get_bishop_mask(src_square, occupied_mask);
+						move_mask = sliders.get_bishop_mask(src_square, occupied_mask);
 						break;
 					case PIECE_ROOK:
-						move_mask = magics.get_rook_mask(src_square, occupied_mask);
+						move_mask = sliders.get_rook_mask(src_square, occupied_mask);
 						break;
 					case PIECE_QUEEN:
-						move_mask = magics.get_queen_mask(src_square, occupied_mask);
+						move_mask = sliders.get_queen_mask(src_square, occupied_mask);
 						break;
 					case PIECE_KING:
 						move_mask = bitmasks.get_king_mask(src_square);
@@ -392,7 +398,7 @@ struct Position
 						move++;
 					}
 				}
-				dst_mask = move_mask & opponent_mask;
+				dst_mask = move_mask & enemy_mask;
 				while (dst_mask != 0)
 				{
 					Square dst_square = pop_square(dst_mask);
@@ -464,25 +470,25 @@ struct Position
 	template<Color color>
 	inline bool is_in_check() const
 	{
-		constexpr Color opponent_color = flip_color(color);
+		constexpr Color enemy = flip_color(color);
 		const Square king_square = get_square(colors[color] & pieces[PIECE_KING]);
-		return is_attacked<opponent_color>(king_square);
+		return is_attacked<enemy>(king_square);
 	}
 
 	template<Color color>
 	inline bool is_attacked(Square square) const
 	{
-		constexpr Color opponent_color = flip_color(color);
-		const Bitboard color_mask = colors[color];
-		const Bitboard occupied_mask = color_mask | colors[opponent_color];
+		constexpr Color enemy = flip_color(color);
+		Bitboard color_mask = colors[color];
+		Bitboard occupied_mask = color_mask | colors[enemy];
 		Bitboard src_mask;
 		src_mask = color_mask & (pieces[PIECE_BISHOP] | pieces[PIECE_QUEEN]);
-		if (src_mask != 0 && (src_mask & bitmasks.get_bishop_mask(square)) != 0 && (src_mask & magics.get_bishop_mask(square, occupied_mask)) != 0)
+		if (src_mask != 0 && (src_mask & bitmasks.get_bishop_mask(square)) != 0 && (src_mask & sliders.get_bishop_mask(square, occupied_mask)) != 0)
 		{
 			return true;
 		}
 		src_mask = color_mask & (pieces[PIECE_ROOK] | pieces[PIECE_QUEEN]);
-		if (src_mask != 0 && (src_mask & bitmasks.get_rook_mask(square)) != 0 && (src_mask & magics.get_rook_mask(square, occupied_mask)) != 0)
+		if (src_mask != 0 && (src_mask & bitmasks.get_rook_mask(square)) != 0 && (src_mask & sliders.get_rook_mask(square, occupied_mask)) != 0)
 		{
 			return true;
 		}
@@ -496,9 +502,9 @@ struct Position
 		{
 			return true;
 		}
-		const Bitboard pawn_mask = color_mask & pieces[PIECE_PAWN];
-		const Bitboard pawn_left_capture_mask = shift_forward_left<color>(pawn_mask) & ~get_file_mask(FILE_H);
-		const Bitboard pawn_right_capture_mask = shift_forward_right<color>(pawn_mask) & ~get_file_mask(FILE_A);
+		Bitboard pawn_mask = color_mask & pieces[PIECE_PAWN];
+		Bitboard pawn_left_capture_mask = shift_forward_left<color>(pawn_mask);
+		Bitboard pawn_right_capture_mask = shift_forward_right<color>(pawn_mask);
 		if ((get_square_mask(square) & (pawn_left_capture_mask | pawn_right_capture_mask)) != 0)
 		{
 			return true;
@@ -522,20 +528,20 @@ struct Position
 	template<Color color>
 	inline bool play_move(Position* next_position, const Move& move) const
 	{
-		constexpr Color opponent_color = flip_color(color);
-		const Bitboard src_mask = get_square_mask(move.src_square);
-		const Bitboard dst_mask = get_square_mask(move.dst_square);
-		const Bitboard move_mask = src_mask | dst_mask;
-		const Bitboard en_passant_mask = shift_backward<color>(dst_mask);
+		constexpr Color enemy = flip_color(color);
+		Bitboard src_mask = get_square_mask(move.src_square);
+		Bitboard dst_mask = get_square_mask(move.dst_square);
+		Bitboard move_mask = src_mask | dst_mask;
+		Bitboard en_passant_mask = shift_backward<color>(dst_mask);
 		memcpy(next_position, this, sizeof(pieces) + sizeof(colors));
-		next_position->current_color = opponent_color;
+		next_position->current_color = enemy;
 		next_position->castling_mask = castling_mask & ~move_mask;
 		next_position->en_passant_square = SQUARE_NONE;
 		next_position->colors[color] ^= move_mask;
 		if (move.captured_piece != PIECE_NONE)
 		{
 			next_position->pieces[move.captured_piece] ^= dst_mask;
-			next_position->colors[opponent_color] ^= dst_mask;
+			next_position->colors[enemy] ^= dst_mask;
 			next_position->halfmove_clock = 0;
 		}
 		else
@@ -551,7 +557,7 @@ struct Position
 				break;
 			case MOVE_TYPE_EN_PASSANT:
 				next_position->pieces[PIECE_PAWN] ^= move_mask | en_passant_mask;
-				next_position->colors[opponent_color] ^= en_passant_mask;
+				next_position->colors[enemy] ^= en_passant_mask;
 				next_position->halfmove_clock = 0;
 				break;
 			case MOVE_TYPE_PROMOTION_Q:

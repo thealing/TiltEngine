@@ -66,12 +66,3 @@ inline int count_squares(Bitboard bitboard)
 	return __builtin_popcountll(bitboard);
 #endif
 }
-
-inline void flip_squares(Bitboard& bitboard)
-{
-#ifdef _MSC_VER
-	bitboard = _byteswap_uint64(bitboard);
-#else
-	bitboard = __builtin_bswap64(bitboard);
-#endif
-}

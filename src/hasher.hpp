@@ -31,7 +31,7 @@ public:
 	template<Color color>
 	inline constexpr Hash get_move_hash(const Move& move, const Position& old_position, const Position& new_position) const
 	{
-		constexpr Color opponent_color = flip_color(color);
+		constexpr Color enemy = flip_color(color);
 		Hash hash = 0;
 		switch (move.type)
 		{
@@ -42,7 +42,7 @@ public:
 			case MOVE_TYPE_EN_PASSANT:
 				hash ^= _square_piece_hashes[color][move.src_square][PIECE_PAWN];
 				hash ^= _square_piece_hashes[color][move.dst_square][PIECE_PAWN];
-				hash ^= _square_piece_hashes[opponent_color][move_backward<color>(move.dst_square)][PIECE_PAWN];
+				hash ^= _square_piece_hashes[enemy][move_backward<color>(move.dst_square)][PIECE_PAWN];
 				break;
 			case MOVE_TYPE_PROMOTION_Q:
 				hash ^= _square_piece_hashes[color][move.src_square][PIECE_PAWN];
@@ -79,7 +79,7 @@ public:
 		}
 		if (move.captured_piece != PIECE_NONE)
 		{
-			hash ^= _square_piece_hashes[opponent_color][move.dst_square][move.captured_piece];
+			hash ^= _square_piece_hashes[enemy][move.dst_square][move.captured_piece];
 		}
 		hash ^= (Hash)old_position.castling_mask;
 		hash ^= (Hash)old_position.current_color;

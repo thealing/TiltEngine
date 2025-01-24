@@ -44,13 +44,13 @@
     <ClInclude Include="src\move.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\moves.hpp">
+    <ClInclude Include="src\moves_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\position.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\magics.hpp">
+    <ClInclude Include="src\sliders.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\bitboards.hpp">
@@ -75,6 +75,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\transposition_table.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pawn_structure_table.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

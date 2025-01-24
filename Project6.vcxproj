@@ -171,15 +171,16 @@
   <ItemGroup>
     <ClInclude Include="src\hash.hpp" />
     <ClInclude Include="src\history_heuristic.hpp" />
+    <ClInclude Include="src\pawn_structure_table.hpp" />
     <ClInclude Include="src\search.hpp" />
     <ClInclude Include="src\evaluator.hpp" />
     <ClInclude Include="src\scores.hpp" />
     <ClInclude Include="src\hasher.hpp" />
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\move.hpp" />
-    <ClInclude Include="src\moves.hpp" />
+    <ClInclude Include="src\moves_helper.hpp" />
     <ClInclude Include="src\position.hpp" />
-    <ClInclude Include="src\magics.hpp" />
+    <ClInclude Include="src\sliders.hpp" />
     <ClInclude Include="src\bitboards.hpp" />
     <ClInclude Include="src\bitmasks.hpp" />
     <ClInclude Include="src\pieces.hpp" />

@@ -165,6 +165,7 @@ public:
 	template<Color color, bool quiescence>
 	inline Score search(int current_depth, int remaining_depth, Score alpha, Score beta)
 	{
+		// TODO: what a mess...
 		_node_count++;
 		Hash hash = _hash_stack[_ply];
 		const Position& position = _position_stack[_ply];
