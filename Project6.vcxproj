@@ -172,6 +172,7 @@
     <ClInclude Include="src\hash.hpp" />
     <ClInclude Include="src\history_heuristic.hpp" />
     <ClInclude Include="src\pawn_structure_table.hpp" />
+    <ClInclude Include="src\profiler.hpp" />
     <ClInclude Include="src\search.hpp" />
     <ClInclude Include="src\evaluator.hpp" />
     <ClInclude Include="src\scores.hpp" />

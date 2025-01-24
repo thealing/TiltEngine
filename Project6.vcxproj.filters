@@ -80,5 +80,8 @@
     <ClInclude Include="src\pawn_structure_table.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\profiler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
