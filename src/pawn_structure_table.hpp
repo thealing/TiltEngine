@@ -1,5 +1,6 @@
 #pragma once
 
+#include "profiler.hpp"
 #include "position.hpp"
 
 #include <vector>
@@ -11,13 +12,6 @@ struct PawnStructureEntry
 	Bitboard attack_masks[COLOR_COUNT];
 	Bitboard passed_masks[COLOR_COUNT];
 	Bitboard doubled_masks[COLOR_COUNT];
-
-	PawnStructureEntry() = default;
-
-	PawnStructureEntry(const Position& position)
-	{
-		init(position);
-	}
 
 	inline void init(const Position& position)
 	{
@@ -56,26 +50,38 @@ struct PawnStructureEntry
 class PawnStructureTable
 {
 public:
-	static constexpr int DEFAULT_SIZE = 1 << 20;
-
-	PawnStructureTable(size_t size = DEFAULT_SIZE) : _and(size - 1), _entries(size)
+	PawnStructureTable()
 	{
 		clear();
 	}
 
 	inline void clear()
 	{
-		std::fill(_entries.begin(), _entries.end(), PawnStructureEntry{});
+		memset(_entries, 0, sizeof(_entries));
 	}
 
-	inline PawnStructureEntry& get_entry(Bitboard pawns[COLOR_COUNT])
+	inline const PawnStructureEntry& get_entry(const Position& position)
 	{
-		// TODO: better hash?
-		uint64_t hash = pawns[COLOR_WHITE] * 123456789 + pawns[COLOR_BLACK] * 987654321;
-		return _entries[hash & _and];
+		Bitboard white_pawn_mask = position.get_mask(PIECE_PAWN, COLOR_WHITE);
+		Bitboard black_pawn_mask = position.get_mask(PIECE_PAWN, COLOR_BLACK);
+		uint64_t hash = (white_pawn_mask * WHITE_MULTIPLIER + black_pawn_mask * BLACK_MULTIPLIER) >> SHIFT;
+		PawnStructureEntry& entry = _entries[hash];
+		if (entry.pawn_masks[COLOR_WHITE] != white_pawn_mask || entry.pawn_masks[COLOR_BLACK] != black_pawn_mask)
+		{
+			entry.init(position);
+		}
+		return entry;
 	}
 
 private:
-	uint64_t _and;
-	std::vector<PawnStructureEntry> _entries;
+	static constexpr int HASH_BITS = 12;
+	static constexpr int SIZE = 1 << HASH_BITS;
+	static constexpr int SHIFT = 64 - HASH_BITS;
+
+	static constexpr Hash WHITE_MULTIPLIER = 0x9E3779B97F4A7C15;
+	static constexpr Hash BLACK_MULTIPLIER = 0xC13FA9A902A6328F;
+
+	PawnStructureEntry _entries[SIZE];
 };
+
+inline PawnStructureTable pawn_structure_table;
