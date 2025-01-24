@@ -52,3 +52,4 @@ private:
 	std::vector<TranspositionEntry> _entries;
 };
 
+inline TranspositionTable transposition_table;

@@ -512,7 +512,7 @@ struct Position
 		return false;
 	}
 
-	inline bool play_move(Position* next_position, const Move& move)
+	inline bool play_move(Position* next_position, const Move& move) const
 	{
 		switch (current_color)
 		{

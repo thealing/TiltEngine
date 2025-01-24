@@ -41,3 +41,4 @@ private:
 	int _values[SQUARE_COUNT][SQUARE_COUNT][PIECE_COUNT + 1];
 };
 
+inline HistoryHeuristic history_heuristic;

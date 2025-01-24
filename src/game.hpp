@@ -20,18 +20,17 @@ struct Game
 	{
 		_position_stack[0].set_fen(fen);
 		_hash_stack[0] = hasher.get_position_hash(_position_stack[0]);
-		evaluator.evaluate_position(&_evaluation_stack[0], _position_stack[0]);
 		_ply = 0;
 	}
 
 	Square parse_square(const char str[]) const
 	{
-		return _position_stack[_ply].parse_square(str);
+		return get_current_position().parse_square(str);
 	}
 
 	Move parse_move(const char str[]) const
 	{
-		return _position_stack[_ply].parse_move(str);
+		return get_current_position().parse_move(str);
 	}
 
 	inline const Position& get_current_position() const
@@ -39,19 +38,24 @@ struct Game
 		return _position_stack[_ply];
 	}
 
+	inline Hash get_current_hash() const
+	{
+		return _hash_stack[_ply];
+	}
+
 	inline Color get_current_color() const
 	{
-		return _position_stack[_ply].current_color;
+		return get_current_position().current_color;
 	}
 
 	inline Move* generate_moves(Move* move) const
 	{
-		return _position_stack[_ply].generate_moves(move);
+		return get_current_position().generate_moves(move);
 	}
 
 	inline Move* generate_captures(Move* move) const
 	{
-		return _position_stack[_ply].generate_captures(move);
+		return get_current_position().generate_captures(move);
 	}
 
 	inline bool play_move(const Move& move)
@@ -81,7 +85,6 @@ struct Game
 			return false;
 		}
 		_hash_stack[_ply + 1] = _hash_stack[_ply] ^ hasher.get_move_hash<color>(move, current_position, next_position);
-		evaluator.update_evaluation<color>(&_evaluation_stack[_ply + 1], &_evaluation_stack[_ply], move);
 		_ply++;
 		return true;
 	}
@@ -155,6 +158,5 @@ protected:
 protected:
 	Position _position_stack[(size_t)MAX_PLY];
 	Hash _hash_stack[(size_t)MAX_PLY];
-	Evaluation _evaluation_stack[(size_t)MAX_PLY];
 	int _ply;
 };

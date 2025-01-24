@@ -8,23 +8,26 @@
 
 using MoveType = int8_t;
 
-inline constexpr MoveType MOVE_TYPE_PAWN = 0;
-inline constexpr MoveType MOVE_TYPE_KNIGHT = 1;
-inline constexpr MoveType MOVE_TYPE_BISHOP = 2;
-inline constexpr MoveType MOVE_TYPE_ROOK = 3;
-inline constexpr MoveType MOVE_TYPE_QUEEN = 4;
-inline constexpr MoveType MOVE_TYPE_KING = 5;
-inline constexpr MoveType MOVE_TYPE_DOUBLE = 6;
-inline constexpr MoveType MOVE_TYPE_EN_PASSANT = 7;
-inline constexpr MoveType MOVE_TYPE_PROMOTION_Q = 8;
-inline constexpr MoveType MOVE_TYPE_PROMOTION_R = 9;
-inline constexpr MoveType MOVE_TYPE_PROMOTION_B = 10;
-inline constexpr MoveType MOVE_TYPE_PROMOTION_N = 11;
-inline constexpr MoveType MOVE_TYPE_CASTLING_WK = 12;
-inline constexpr MoveType MOVE_TYPE_CASTLING_WQ = 13;
-inline constexpr MoveType MOVE_TYPE_CASTLING_BK = 14;
-inline constexpr MoveType MOVE_TYPE_CASTLING_BQ = 15;
-inline constexpr MoveType MOVE_TYPE_COUNT = 16;
+enum : MoveType
+{
+	MOVE_TYPE_PAWN = PIECE_PAWN,
+	MOVE_TYPE_KNIGHT = PIECE_KNIGHT,
+	MOVE_TYPE_BISHOP = PIECE_BISHOP,
+	MOVE_TYPE_ROOK = PIECE_ROOK,
+	MOVE_TYPE_QUEEN = PIECE_QUEEN,
+	MOVE_TYPE_KING = PIECE_KING,
+	MOVE_TYPE_DOUBLE,
+	MOVE_TYPE_EN_PASSANT,
+	MOVE_TYPE_PROMOTION_Q,
+	MOVE_TYPE_PROMOTION_R,
+	MOVE_TYPE_PROMOTION_B,
+	MOVE_TYPE_PROMOTION_N,
+	MOVE_TYPE_CASTLING_WK,
+	MOVE_TYPE_CASTLING_WQ,
+	MOVE_TYPE_CASTLING_BK,
+	MOVE_TYPE_CASTLING_BQ,
+	MOVE_TYPE_COUNT
+};
 
 struct Move
 {
@@ -75,11 +78,7 @@ struct Move
 
 	inline bool operator==(const Move& other) const
 	{
-		return memcmp(this, &other, sizeof(Move)) == 0;
-	}
-
-	inline bool operator!=(const Move& other) const
-	{
-		return !(*this == other);
+		static_assert(sizeof(Move) == sizeof(int32_t));
+		return *(int32_t*)this == *(int32_t*)&other;
 	}
 };

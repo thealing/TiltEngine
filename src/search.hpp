@@ -12,16 +12,12 @@
 #include <string>
 #include <thread>
 
-// search.hpp is only included in main.cpp
-// so this doesn't disturb other headers
-using namespace std;
-
-inline ostream& operator<<(ostream& os, const Square& square)
+inline std::ostream& operator<<(std::ostream& os, const Square& square)
 {
 	return os << char('a' + get_square_file(square)) << char('8' - get_square_rank(square));
 }
 
-inline ostream& operator<<(ostream& os, const Move& move)
+inline std::ostream& operator<<(std::ostream& os, const Move& move)
 {
 	os << move.src_square << move.dst_square;
 	switch (move.type)
@@ -55,10 +51,9 @@ public:
 	{
 		set_fen(START_FEN);
 		_score = 0;
-		fill(begin(_move_stack), end(_move_stack), Move{});
-		_transposition_table.clear();
-		_history_heuristic.clear();
-		_played_null_move = false;
+		transposition_table.clear();
+		history_heuristic.clear();
+		pawn_structure_table.clear();
 	}
 
 	inline void start(int depth_limit, int64_t node_limit, Time time_limit)
@@ -88,7 +83,7 @@ public:
 		int remaining_moves = int(45 - atan(abs(_score) * 0.006) * 20);
 		if (moves_to_go)
 		{
-			remaining_moves = min(remaining_moves, moves_to_go);
+			remaining_moves = std::min(remaining_moves, moves_to_go);
 		}
 		_stop_time = _start_time + time_left / 5;
 		_think_time = (time_left + increment * remaining_moves) / remaining_moves;
@@ -97,7 +92,7 @@ public:
 
 	inline void start_thread()
 	{
-		_thread = thread(&Search::think, this);
+		_thread = std::thread(&Search::think, this);
 	}
 
 	inline void stop()
@@ -139,9 +134,9 @@ public:
 				break;
 			}
 			_score = new_score;
-			_move = get_current_position().extract_move(_transposition_table.get_entry(_hash_stack[_ply]).move);
+			_move = get_current_position().extract_move(transposition_table.get_entry(_hash_stack[_ply]).move);
 			print_info();
-			if (_think_time != 0 && iterations <= 3 && get_time() - _start_time >= _think_time * iterations)
+			if (_think_time != 0 && get_time() - _start_time >= _think_time * iterations)
 			{
 				break;
 			}
@@ -183,12 +178,7 @@ public:
 			}
 		}
 		Score position_score;
-		if constexpr (ALWAYS_REEVALUATE)
-		{
-			// not much slowdown because the TT entry is being loaded by _mm_prefetch
-			evaluator.evaluate_position(&_evaluation_stack[_ply], position);
-		}
-		position_score = evaluator.get_evaluation_score(_evaluation_stack[_ply]);
+		position_score = evaluator.evaluate_position(position);
 		if constexpr (color == COLOR_BLACK)
 		{
 			position_score = -position_score;
@@ -206,7 +196,7 @@ public:
 				alpha = position_score;
 			}
 		}
-		TranspositionEntry& entry = _transposition_table.get_entry(hash);
+		TranspositionEntry& entry = transposition_table.get_entry(hash);
 		bool hit = entry.hash == hash;
 		bool lower;
 		bool upper;
@@ -299,7 +289,7 @@ public:
 			{
 				move_scores[i] = 6000000;
 			}
-			move_scores[i] += _history_heuristic.get_move_value(moves[i]);
+			move_scores[i] += history_heuristic.get_move_value(moves[i]);
 		}
 		for (int i = 0; i < move_count; i++)
 		{
@@ -320,7 +310,7 @@ public:
 				move_scores[i] = -1;
 				continue;
 			}
-			_mm_prefetch((const char*)&_transposition_table.get_entry(_hash_stack[_ply]), _MM_HINT_ENTA);
+			_mm_prefetch((const char*)&transposition_table.get_entry(_hash_stack[_ply]), _MM_HINT_ENTA);
 			_move_stack[_ply - 1] = move;
 			legal_move_count++;
 			if (move.captured_piece == PIECE_NONE)
@@ -360,14 +350,14 @@ public:
 			if (score >= beta)
 			{
 				int delta = remaining_depth * remaining_depth;
-				_history_heuristic.add_move_value(move, delta);
+				history_heuristic.add_move_value(move, delta);
 				for (int j = 0; j < i; j++)
 				{
 					if (move_scores[j] == -1)
 					{
 						continue;
 					}
-					_history_heuristic.add_move_value(moves[j], -delta);
+					history_heuristic.add_move_value(moves[j], -delta);
 				}
 				score_type = SCORE_TYPE_LOWER;
 				break;
@@ -455,30 +445,30 @@ private:
 
 	inline void print_info()
 	{
-		cout << "info depth " << _depth;
-		cout << " score ";
+		std::cout << "info depth " << _depth;
+		std::cout << " score ";
 		if (_score >= SCORE_MATE - MAX_DEPTH)
 		{
-			cout << "mate " << (SCORE_MATE - _score + 1) / 2;
+			std::cout << "mate " << (SCORE_MATE - _score + 1) / 2;
 		}
 		else if (_score <= -SCORE_MATE + MAX_DEPTH)
 		{
-			cout << "mate " << (-SCORE_MATE - _score - 1) / 2; 
+			std::cout << "mate " << (-SCORE_MATE - _score - 1) / 2; 
 		}
 		else
 		{
-			cout << "cp " << _score;
+			std::cout << "cp " << _score;
 		}
 		Time elapsed_time = get_time() - _start_time;
-		cout << " time " << elapsed_time;
-		cout << " nodes " << _node_count;
-		cout << " nps " << _node_count * 1000 / max(elapsed_time, 1LL);
-		cout << " pv";
+		std::cout << " time " << elapsed_time;
+		std::cout << " nodes " << _node_count;
+		std::cout << " nps " << _node_count * 1000 / std::max(elapsed_time, 1LL);
+		std::cout << " pv";
 		int old_ply = _ply;
 		while (true)
 		{
 			Hash hash = _hash_stack[_ply];
-			TranspositionEntry entry = _transposition_table.get_entry(hash);
+			TranspositionEntry entry = transposition_table.get_entry(hash);
 			if (entry.hash != hash)
 			{
 				break;
@@ -486,7 +476,7 @@ private:
 			Move entry_move = get_current_position().extract_move(entry.move);
 			Move moves[MAX_MOVES];
 			Move* end = generate_moves(moves);
-			Move* move = find(moves, end, entry_move);
+			Move* move = std::find(moves, end, entry_move);
 			if (move == end)
 			{
 				break;
@@ -495,23 +485,24 @@ private:
 			{
 				break;
 			}
-			cout << ' ' << entry_move;
+			std::cout << ' ' << entry_move;
 			if (is_draw_by_repetition())
 			{
 				break;
 			}
 		}
 		_ply = old_ply;
-		cout << endl;
+		std::cout << std::endl;
 	}
 
 	inline void print_move()
 	{
-		cout << "bestmove " << _move << endl;
+		std::cout << "bestmove " << _move << std::endl;
+		//std::cout << debug_counters[0] << ' ' << debug_counters[1] << std::endl;
 	}
 
 private:
-	thread _thread;
+	std::thread _thread;
 	int _depth_limit;
 	int64_t _node_limit;
 	int64_t _node_count;
@@ -521,8 +512,5 @@ private:
 	int _depth;
 	Score _score;
 	Move _move;
-	TranspositionTable _transposition_table;
-	HistoryHeuristic _history_heuristic;
 	Move _move_stack[MAX_PLY];
-	bool _played_null_move;
 };
