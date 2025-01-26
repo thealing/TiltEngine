@@ -58,11 +58,9 @@ private:
 		Bitboard enemy_mask =  position.colors[enemy];
 		Bitboard occupied_mask = color_mask | enemy_mask;
 		Bitboard empty_mask = ~occupied_mask;
-		Bitboard safe_mask = ~entry.attack_masks[enemy];
-		value += _move_values[PIECE_PAWN] * count_squares(empty_mask & safe_mask & entry.move_masks[color]);
-		value += _attack_values[PIECE_PAWN] * count_squares(enemy_mask & safe_mask & entry.attack_masks[color]);
-		value += _defense_values[PIECE_PAWN] * count_squares(color_mask & safe_mask & entry.attack_masks[color]);
-		//Profiler::get().enter();
+		value += _move_values[PIECE_PAWN] * count_squares(empty_mask & entry.move_masks[color]);
+		value += _attack_values[PIECE_PAWN] * count_squares(enemy_mask & entry.attack_masks[color]);
+		value += _defense_values[PIECE_PAWN] * count_squares(color_mask & entry.attack_masks[color]);
 		for (Piece piece = PIECE_KNIGHT; piece <= PIECE_KING; piece++)
 		{
 			Bitboard src_mask = color_mask & position.pieces[piece];
@@ -88,13 +86,12 @@ private:
 						dst_mask = bitmasks.get_king_mask(src_square);
 						break;
 				}
-				dst_mask &= safe_mask;
+				dst_mask &= ~entry.attack_masks[enemy];
 				value += _move_values[piece] * count_squares(dst_mask & empty_mask);
 				value += _attack_values[piece] * count_squares(dst_mask & enemy_mask);
 				value += _defense_values[piece] * count_squares(dst_mask & color_mask);
 			}
 		}
-		//Profiler::get().leave();
 		return value;
 	}
 
@@ -109,12 +106,9 @@ private:
 			Square square = pop_square(mask);
 			value += _passed_pawn_values[color][square];
 		}
-		mask = entry.doubled_masks[color];
-		while (mask != 0)
-		{
-			Square square = pop_square(mask);
-			value += _doubled_pawn_values[color][square];
-		}
+		value += _doubled_pawn_value * count_squares(entry.doubled_masks[color]);
+		value += _isolated_pawn_value * count_squares(entry.isolated_masks[color]);
+		value += _backward_pawn_value * count_squares(entry.backward_masks[color]);
 		return value;
 	}
 
@@ -138,20 +132,20 @@ public:
 	inline constexpr Evaluator()
 	{
 		const Score* opening_piece_tables[] = {
-			_opening_pawn_table,
-			_opening_knight_table,
-			_opening_bishop_table,
-			_opening_rook_table,
-			_opening_queen_table,
-			_opening_king_table
+			_opening_pawn_square_values,
+			_opening_knight_square_values,
+			_opening_bishop_square_values,
+			_opening_rook_square_values,
+			_opening_queen_square_values,
+			_opening_king_square_values,
 		};
 		const Score* endgame_piece_tables[] = {
-			_endgame_pawn_table,
-			_endgame_knight_table,
-			_endgame_bishop_table,
-			_endgame_rook_table,
-			_endgame_queen_table,
-			_endgame_king_table
+			_endgame_pawn_square_values,
+			_endgame_knight_square_values,
+			_endgame_bishop_square_values,
+			_endgame_rook_square_values,
+			_endgame_queen_square_values,
+			_endgame_king_square_values,
 		};
 		for (Piece piece = 0; piece < PIECE_COUNT; piece++)
 		{
@@ -170,16 +164,13 @@ public:
 		}
 		for (Square square = 0; square < SQUARE_COUNT; square++)
 		{
-			Value value = make_value(_opening_passed_pawn_table[square], _endgame_passed_pawn_table[square]);
+			Value value = make_value(_opening_passed_pawn_values[square], _endgame_passed_pawn_values[square]);
 			_passed_pawn_values[COLOR_WHITE][square] = value;
 			_passed_pawn_values[COLOR_BLACK][mirror_rank(square)] = value;
 		}
-		for (Square square = 0; square < SQUARE_COUNT; square++)
-		{
-			Value value = make_value(_opening_doubled_pawn_table[square], _endgame_doubled_pawn_table[square]);
-			_doubled_pawn_values[COLOR_WHITE][square] = value;
-			_doubled_pawn_values[COLOR_BLACK][mirror_rank(square)] = value;
-		}
+		_doubled_pawn_value = make_value(_opening_doubled_pawn_value, _endgame_doubled_pawn_value);
+		_isolated_pawn_value = make_value(_opening_isolated_pawn_value, _endgame_isolated_pawn_value);
+		_backward_pawn_value = make_value(_opening_backward_pawn_value, _endgame_backward_pawn_value);
 	}
 
 private:
@@ -188,177 +179,177 @@ private:
 	Value _defense_values[PIECE_COUNT] = {};
 	Value _square_values[COLOR_COUNT][SQUARE_COUNT][PIECE_COUNT] = {};
 	Value _passed_pawn_values[COLOR_COUNT][SQUARE_COUNT] = {};
-	Value _doubled_pawn_values[COLOR_COUNT][SQUARE_COUNT] = {};
+	Value _doubled_pawn_value = {};
+	Value _isolated_pawn_value = {};
+	Value _backward_pawn_value = {};
 
 private:
-	constexpr static Score _weights[PIECE_COUNT] = { -73, 93, 190, 304, 1020, -256 };
-	constexpr static Score _total_weight = 2708;
-	constexpr static Score _opening_move_values[PIECE_COUNT] = { 15, 19, 15, 11, 6, 10 };
-	constexpr static Score _endgame_move_values[PIECE_COUNT] = { 16, 16, 12, 12, 30, -9 };
-	constexpr static Score _opening_attack_values[PIECE_COUNT] = { 66, 18, 26, 29, 4, -52 };
-	constexpr static Score _endgame_attack_values[PIECE_COUNT] = { 25, 29, 38, 43, 70, 14 };
-	constexpr static Score _opening_defense_values[PIECE_COUNT] = { 13, 16, 15, 14, 5, 23 };
-	constexpr static Score _endgame_defense_values[PIECE_COUNT] = { 10, 16, 13, 22, 63, -4 };
-	constexpr static Score _opening_pawn_table[SQUARE_COUNT] = {
-		100, 100, 100, 100, 100, 100, 100, 100,
-		146, 149, 139, 157, 132, 149, 95, 71,
-		95, 93, 94, 100, 137, 158, 133, 104,
-		77, 84, 85, 98, 94, 94, 89, 66,
-		68, 71, 86, 96, 109, 96, 87, 64,
-		69, 77, 77, 82, 98, 96, 122, 77,
-		82, 92, 85, 87, 91, 136, 140, 86,
-		100, 100, 100, 100, 100, 100, 100, 100,
+	constexpr static Score _weights[PIECE_COUNT] = { -84, 136, 229, 372, 1008, -117 };
+	constexpr static Score _total_weight = 3386;
+	constexpr static Score _opening_move_values[PIECE_COUNT] = {
+		14,   19,   16,    9,    6,    3
 	};
-	constexpr static Score _endgame_pawn_table[SQUARE_COUNT] = {
-		100, 100, 100, 100, 100, 100, 100, 100,
-		240, 236, 219, 209, 218, 214, 225, 232,
-		141, 139, 145, 127, 146, 148, 156, 137,
-		118, 119, 114, 109, 117, 122, 123, 112,
-		106, 109, 106, 105, 111, 107, 108, 95,
-		96, 101, 100, 105, 111, 107, 103, 91,
-		107, 105, 112, 108, 124, 118, 110, 91,
-		100, 100, 100, 100, 100, 100, 100, 100,
+	constexpr static Score _endgame_move_values[PIECE_COUNT] = {
+		16,   15,   13,   14,   28,   -9
 	};
-	constexpr static Score _opening_knight_table[SQUARE_COUNT] = {
-		210, 273, 280, 298, 319, 261, 293, 276,
-		243, 261, 406, 324, 328, 353, 325, 307,
-		265, 340, 322, 346, 383, 414, 389, 352,
-		326, 341, 305, 385, 357, 379, 360, 371,
-		332, 318, 320, 332, 352, 342, 361, 354,
-		318, 303, 314, 304, 326, 325, 349, 327,
-		317, 282, 300, 334, 328, 336, 317, 344,
-		262, 337, 269, 304, 340, 302, 342, 306,
+	constexpr static Score _opening_attack_values[PIECE_COUNT] = {
+		64,   19,   29,   24,    4,  -56
 	};
-	constexpr static Score _endgame_knight_table[SQUARE_COUNT] = {
-		279, 305, 337, 313, 337, 306, 296, 260,
-		318, 337, 338, 348, 343, 334, 340, 314,
-		314, 332, 329, 336, 337, 338, 335, 326,
-		343, 337, 337, 355, 347, 341, 337, 352,
-		343, 330, 333, 347, 345, 340, 345, 350,
-		339, 328, 312, 328, 330, 313, 321, 336,
-		332, 327, 323, 334, 335, 324, 333, 322,
-		323, 335, 324, 336, 340, 333, 332, 297,
+	constexpr static Score _endgame_attack_values[PIECE_COUNT] = {
+		16,   30,   43,   52,   66,   24
 	};
-	constexpr static Score _opening_bishop_table[SQUARE_COUNT] = {
-		351, 324, 261, 280, 301, 276, 308, 344,
-		313, 352, 299, 293, 351, 355, 352, 285,
-		361, 347, 377, 355, 343, 374, 382, 393,
-		350, 386, 348, 393, 366, 391, 385, 378,
-		374, 367, 379, 364, 401, 355, 376, 399,
-		390, 396, 377, 386, 379, 408, 383, 404,
-		386, 401, 395, 375, 388, 382, 423, 369,
-		344, 387, 396, 377, 378, 375, 312, 366,
+	constexpr static Score _opening_defense_values[PIECE_COUNT] = {
+		11,   16,   19,    9,    6,   16
 	};
-	constexpr static Score _endgame_bishop_table[SQUARE_COUNT] = {
-		359, 350, 342, 348, 354, 348, 355, 350,
-		364, 360, 357, 345, 361, 362, 359, 351,
-		373, 356, 353, 350, 352, 359, 363, 379,
-		373, 362, 357, 352, 348, 361, 357, 377,
-		375, 360, 360, 357, 351, 357, 359, 376,
-		377, 370, 366, 370, 369, 364, 366, 381,
-		378, 369, 371, 373, 377, 365, 372, 360,
-		360, 384, 385, 379, 376, 380, 370, 369,
+	constexpr static Score _endgame_defense_values[PIECE_COUNT] = {
+		8,   15,   16,   32,   54,   -5
 	};
-	constexpr static Score _opening_rook_table[SQUARE_COUNT] = {
-		520, 529, 496, 553, 548, 505, 506, 512,
-		505, 517, 530, 556, 551, 549, 505, 522,
-		478, 507, 515, 527, 520, 540, 558, 518,
-		472, 482, 499, 529, 526, 543, 503, 488,
-		468, 472, 498, 501, 526, 506, 532, 485,
-		466, 481, 501, 503, 517, 525, 511, 476,
-		468, 504, 498, 516, 533, 531, 521, 442,
-		501, 512, 531, 541, 546, 520, 492, 503,
+	constexpr static Score _opening_pawn_square_values[SQUARE_COUNT] = {
+		100,  100,  100,  100,  100,  100,  100,  100, 
+		136,  142,  131,  144,  130,  138,  105,   89, 
+		88,   89,   94,  104,  130,  156,  130,   94, 
+		62,   69,   77,   95,   85,   90,   75,   57, 
+		56,   56,   80,   92,  102,   90,   71,   56, 
+		55,   61,   72,   78,   93,   87,  107,   68, 
+		67,   74,   79,   83,   84,  126,  122,   76, 
+		100,  100,  100,  100,  100,  100,  100,  100, 
 	};
-	constexpr static Score _endgame_rook_table[SQUARE_COUNT] = {
-		613, 613, 614, 617, 620, 615, 615, 608,
-		606, 609, 609, 608, 602, 611, 614, 609,
-		607, 612, 609, 614, 604, 601, 607, 601,
-		605, 600, 612, 604, 608, 605, 593, 607,
-		601, 599, 604, 596, 596, 586, 591, 591,
-		592, 593, 586, 587, 583, 578, 586, 580,
-		589, 591, 592, 596, 589, 584, 583, 582,
-		589, 597, 601, 599, 598, 590, 588, 576,
+	constexpr static Score _endgame_pawn_square_values[SQUARE_COUNT] = {
+		100,  100,  100,  100,  100,  100,  100,  100, 
+		245,  239,  222,  210,  220,  216,  232,  243, 
+		140,  145,  154,  144,  152,  144,  161,  141, 
+		114,  115,  110,  107,  114,  116,  117,  110, 
+		103,  105,  102,  100,  105,  100,  101,   93, 
+		92,   96,   97,  105,  107,  102,   91,   87, 
+		101,   98,  109,  107,  118,  108,   96,   85, 
+		100,  100,  100,  100,  100,  100,  100,  100, 
 	};
-	constexpr static Score _opening_queen_table[SQUARE_COUNT] = {
-		917, 912, 933, 923, 975, 955, 955, 974,
-		883, 856, 900, 914, 895, 953, 945, 984,
-		902, 891, 928, 910, 949, 971, 973, 997,
-		873, 884, 879, 893, 903, 936, 923, 929,
-		908, 870, 902, 882, 908, 900, 920, 920,
-		894, 916, 889, 902, 897, 915, 924, 928,
-		889, 896, 923, 913, 925, 916, 895, 919,
-		911, 915, 925, 931, 910, 882, 901, 878,
+	constexpr static Score _opening_knight_square_values[SQUARE_COUNT] = {
+		247,  286,  291,  296,  310,  279,  295,  283, 
+		261,  269,  375,  311,  313,  331,  310,  301, 
+		272,  323,  307,  325,  354,  367,  358,  326, 
+		313,  325,  289,  370,  343,  356,  343,  352, 
+		318,  307,  303,  317,  336,  327,  340,  340, 
+		304,  288,  299,  288,  309,  310,  334,  312, 
+		304,  281,  284,  320,  314,  321,  306,  330, 
+		278,  322,  266,  288,  323,  285,  327,  297, 
 	};
-	constexpr static Score _endgame_queen_table[SQUARE_COUNT] = {
-		926, 959, 963, 961, 960, 967, 946, 974,
-		932, 930, 907, 941, 961, 935, 926, 966,
-		955, 909, 849, 934, 926, 919, 923, 981,
-		1001, 931, 886, 870, 907, 908, 994, 1029,
-		955, 932, 885, 873, 869, 897, 952, 1006,
-		947, 871, 867, 869, 855, 876, 907, 966,
-		946, 889, 867, 870, 867, 861, 881, 919,
-		923, 913, 884, 893, 918, 908, 916, 906,
+	constexpr static Score _endgame_knight_square_values[SQUARE_COUNT] = {
+		274,  293,  320,  298,  319,  292,  286,  267, 
+		306,  325,  310,  331,  325,  310,  319,  296, 
+		301,  310,  309,  314,  311,  311,  308,  304, 
+		326,  316,  321,  329,  323,  315,  314,  329, 
+		325,  312,  314,  328,  323,  318,  324,  330, 
+		322,  313,  292,  311,  310,  292,  298,  319, 
+		313,  311,  306,  315,  316,  304,  315,  302, 
+		305,  317,  310,  323,  321,  317,  312,  288, 
 	};
-	constexpr static Score _opening_king_table[SQUARE_COUNT] = {
-		-8, 11, 16, 7, -12, -2, 9, 4,
-		12, 20, 7, 20, -2, 11, 5, -18,
-		20, 25, 40, -12, 3, 43, 45, 3,
-		8, 5, 18, -22, -24, 2, 25, -16,
-		-14, 10, -26, -80, -83, -50, -20, -25,
-		22, 16, -45, -67, -81, -54, -7, 18,
-		45, 31, -22, -90, -71, -35, 24, 69,
-		21, 85, 46, -55, 40, -6, 77, 85,
+	constexpr static Score _opening_bishop_square_values[SQUARE_COUNT] = {
+		322,  307,  277,  289,  298,  287,  304,  317, 
+		298,  318,  278,  289,  321,  322,  318,  266, 
+		336,  318,  337,  317,  310,  333,  342,  365, 
+		323,  360,  315,  355,  328,  350,  358,  350, 
+		342,  335,  348,  329,  367,  323,  343,  367, 
+		364,  365,  346,  355,  348,  377,  352,  379, 
+		350,  372,  363,  346,  358,  349,  395,  343, 
+		320,  356,  369,  346,  350,  349,  302,  339, 
 	};
-	constexpr static Score _endgame_king_table[SQUARE_COUNT] = {
-		-80, -49, -34, -30, -24, -1, -16, -42,
-		-26, 31, 35, 37, 35, 51, 30, -10,
-		-11, 31, 39, 31, 34, 64, 58, -12,
-		-32, 27, 36, 37, 29, 35, 25, -28,
-		-44, 4, 26, 23, 23, 16, 4, -40,
-		-35, 9, 17, 22, 21, 20, 16, -29,
-		-41, 8, 20, 13, 20, 19, 15, -27,
-		-99, -38, -22, -32, -23, -24, -29, -83,
+	constexpr static Score _endgame_bishop_square_values[SQUARE_COUNT] = {
+		329,  321,  317,  322,  327,  321,  325,  321, 
+		340,  327,  329,  314,  327,  329,  325,  326, 
+		344,  322,  314,  312,  316,  319,  326,  347, 
+		347,  323,  320,  307,  306,  321,  318,  348, 
+		345,  325,  321,  317,  307,  321,  323,  345, 
+		346,  335,  330,  335,  333,  323,  330,  348, 
+		345,  332,  335,  340,  343,  331,  332,  328, 
+		332,  355,  355,  349,  346,  352,  340,  337, 
 	};
-	constexpr static Score _opening_passed_pawn_table[SQUARE_COUNT] = {
-		0, 0, 0, 0, 0, 0, 0, 0,
-		46, 49, 39, 57, 32, 49, -4, -28,
-		59, 38, 32, 28, 17, 22, -7, -26,
-		18, 16, 13, -4, 0, 27, -20, -8,
-		4, -21, -28, -34, -31, -22, -19, 16,
-		-11, -28, -24, -40, -22, 0, -32, 11,
-		-18, -6, 4, -23, -13, -12, -14, -19,
-		0, 0, 0, 0, 0, 0, 0, 0,
+	constexpr static Score _opening_rook_square_values[SQUARE_COUNT] = {
+		515,  519,  498,  533,  528,  505,  508,  509, 
+		508,  516,  526,  540,  536,  535,  506,  517, 
+		480,  506,  513,  522,  514,  524,  538,  510, 
+		470,  480,  497,  520,  521,  528,  499,  485, 
+		459,  476,  495,  497,  521,  501,  521,  478, 
+		461,  480,  499,  501,  517,  522,  509,  472, 
+		462,  501,  496,  513,  531,  528,  515,  437, 
+		496,  507,  526,  536,  543,  514,  487,  499, 
 	};
-	constexpr static Score _endgame_passed_pawn_table[SQUARE_COUNT] = {
-		0, 0, 0, 0, 0, 0, 0, 0,
-		140, 136, 119, 109, 118, 114, 125, 132,
-		160, 150, 116, 98, 78, 105, 117, 136,
-		85, 70, 56, 43, 34, 47, 68, 69,
-		41, 31, 18, 14, 11, 17, 36, 42,
-		8, 7, 1, 0, -3, -2, 9, 11,
-		-1, 4, -5, 1, -1, -7, 1, 3,
-		0, 0, 0, 0, 0, 0, 0, 0,
+	constexpr static Score _endgame_rook_square_values[SQUARE_COUNT] = {
+		557,  557,  560,  559,  563,  561,  561,  552, 
+		551,  553,  550,  546,  541,  552,  560,  553, 
+		558,  560,  554,  559,  549,  544,  548,  547, 
+		558,  550,  559,  547,  552,  546,  538,  558, 
+		553,  546,  548,  539,  536,  527,  531,  540, 
+		541,  538,  526,  527,  520,  514,  525,  528, 
+		538,  534,  533,  535,  524,  519,  523,  535, 
+		533,  541,  541,  537,  535,  530,  536,  520, 
 	};
-	constexpr static Score _opening_doubled_pawn_table[SQUARE_COUNT] = {
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 1, 3, 0, 0, 0, -2, 0,
-		-2, 7, 0, -5, -13, 3, -1, 9,
-		3, 25, 0, 2, -33, 20, 12, -4,
-		-14, -6, -1, -3, -9, 3, 11, -8,
-		-36, 8, -8, -6, -9, -10, 1, -24,
-		0, 0, 0, 0, 0, 0, 0, 0,
+	constexpr static Score _opening_queen_square_values[SQUARE_COUNT] = {
+		913,  912,  926,  917,  951,  935,  936,  960, 
+		887,  848,  890,  907,  896,  936,  930,  970, 
+		903,  887,  909,  905,  935,  949,  957,  992, 
+		880,  879,  871,  881,  894,  924,  923,  927, 
+		902,  868,  892,  874,  896,  892,  915,  919, 
+		891,  909,  880,  894,  886,  904,  915,  926, 
+		887,  889,  915,  905,  916,  904,  886,  910, 
+		906,  908,  914,  922,  902,  877,  896,  882, 
 	};
-	constexpr static Score _endgame_doubled_pawn_table[SQUARE_COUNT] = {
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0,
-		0, 6, 12, -3, -2, 3, -1, 8,
-		8, -16, 2, 2, -19, -27, 5, -14,
-		-29, -11, -29, -20, -13, -29, -13, -18,
-		-32, -8, -20, -16, -10, -17, -11, -33,
-		-43, -25, -28, -36, -50, -23, -18, -28,
-		0, 0, 0, 0, 0, 0, 0, 0,
+	constexpr static Score _endgame_queen_square_values[SQUARE_COUNT] = {
+		911,  935,  941,  937,  949,  947,  935,  957, 
+		907,  907,  894,  922,  931,  927,  922,  951, 
+		926,  895,  862,  918,  919,  920,  923,  964, 
+		954,  911,  878,  868,  898,  906,  960,  987, 
+		932,  911,  883,  871,  873,  896,  936,  970, 
+		925,  872,  871,  869,  862,  885,  910,  939, 
+		921,  884,  867,  872,  871,  873,  883,  908, 
+		910,  903,  887,  889,  911,  899,  904,  896, 
 	};
+	constexpr static Score _opening_king_square_values[SQUARE_COUNT] = {
+		-5,    2,    4,    1,   -5,   -1,    2,    0, 
+		4,   10,    6,   12,    2,    9,    5,   -8, 
+		7,   15,   22,   -3,    5,   26,   28,    0, 
+		0,    5,   11,   -6,   -9,    4,   15,  -13, 
+		-13,    7,  -10,  -44,  -47,  -26,  -11,  -27, 
+		3,   13,  -24,  -45,  -59,  -40,    2,    1, 
+		15,   32,  -11,  -76,  -60,  -22,   35,   62, 
+		-15,   79,   38,  -63,   32,  -17,   72,   68, 
+	};
+	constexpr static Score _endgame_king_square_values[SQUARE_COUNT] = {
+		-39,  -27,  -20,  -18,  -14,    2,   -7,  -18, 
+		-16,   22,   30,   30,   30,   48,   26,   -5, 
+		-9,   25,   33,   29,   32,   61,   54,  -13, 
+		-34,   24,   33,   38,   30,   35,   21,  -30, 
+		-45,    0,   28,   31,   32,   20,    3,  -42, 
+		-39,    3,   19,   27,   28,   24,   13,  -34, 
+		-47,    0,   18,   20,   25,   19,    8,  -41, 
+		-102,  -56,  -34,  -29,  -33,  -27,  -46, -103, 
+	};
+	constexpr static Score _opening_passed_pawn_values[SQUARE_COUNT] = {
+		0,    0,    0,    0,    0,    0,    0,    0, 
+		36,   42,   31,   44,   30,   38,    5,  -10, 
+		44,   25,   19,   15,   18,   27,    1,  -12, 
+		20,   19,   12,   -8,    3,   23,   -2,   -4, 
+		10,  -14,  -30,  -34,  -27,  -16,   -4,   19, 
+		0,  -17,  -22,  -37,  -17,    5,  -11,   21, 
+		-5,    6,    6,  -17,   -4,   -3,    2,   -7, 
+		0,    0,    0,    0,    0,    0,    0,    0, 
+	};
+	constexpr static Score _endgame_passed_pawn_values[SQUARE_COUNT] = {
+		0,    0,    0,    0,    0,    0,    0,    0, 
+		145,  139,  122,  110,  120,  116,  132,  143, 
+		169,  154,  113,   84,   72,  106,  119,  146, 
+		95,   78,   61,   45,   38,   52,   81,   79, 
+		48,   40,   26,   19,   16,   25,   46,   46, 
+		13,   15,    5,    1,   -2,   -1,   18,   13, 
+		5,    9,   -5,    0,    1,   -5,    6,    8, 
+		0,    0,    0,    0,    0,    0,    0,    0, 
+	};
+	constexpr static Score _opening_doubled_pawn_value = 0;
+	constexpr static Score _endgame_doubled_pawn_value = -20;
+	constexpr static Score _opening_isolated_pawn_value = -16;
+	constexpr static Score _endgame_isolated_pawn_value = -7;
+	constexpr static Score _opening_backward_pawn_value = -18;
+	constexpr static Score _endgame_backward_pawn_value = -13;
 };
 
 inline const Evaluator evaluator;

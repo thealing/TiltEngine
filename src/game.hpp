@@ -84,6 +84,7 @@ struct Game
 		{
 			return false;
 		}
+		_move_stack[_ply] = move;
 		_hash_stack[_ply + 1] = _hash_stack[_ply] ^ hasher.get_move_hash<color>(move, current_position, next_position);
 		_ply++;
 		return true;
@@ -156,7 +157,8 @@ protected:
 	}
 
 protected:
-	Position _position_stack[(size_t)MAX_PLY];
-	Hash _hash_stack[(size_t)MAX_PLY];
+	Position _position_stack[MAX_PLY];
+	Hash _hash_stack[MAX_PLY];
+	Move _move_stack[MAX_PLY];
 	int _ply;
 };

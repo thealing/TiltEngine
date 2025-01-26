@@ -5,6 +5,14 @@
 class Random
 {
 public:
+	constexpr Random() : _seed(0)
+	{
+	}
+
+	constexpr Random(uint64_t seed) : _seed(seed)
+	{
+	}
+
 	constexpr uint64_t next() 
 	{
 		_seed *= 2862933555777941757ULL;
@@ -13,5 +21,5 @@ public:
 	}
 
 private:
-	uint64_t _seed = 0;
+	uint64_t _seed;
 };

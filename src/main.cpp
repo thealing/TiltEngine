@@ -1,20 +1,25 @@
 #include "search.hpp"
 
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <sstream>
-#include <ctime>
-#include <chrono>
-#include <thread>
 
-using namespace std;
+using std::cin;
+using std::cout;
+using std::getline;
+using std::endl;
+using std::string;
+using std::stringstream;
 
 int main()
 {
-	Search search;
+	stringstream input(
+		""
+		//"position fen 6k1/7p/6p1/8/8/4K1P1/6q1/8 w - - 4 166\n"
+		//"go\n"
+	);
 	string line;
-	while (getline(cin, line))
+	while (getline(input, line) || getline(cin, line))
 	{
 		stringstream ss(line);
 		string word;
@@ -74,11 +79,11 @@ int main()
 			Time start_time = get_time();
 			int64_t result = search.perft(depth);
 			Time end_time = get_time();
-			Time elapsed_time = max(end_time - start_time, 1LL);
+			Time elapsed_time = end_time - start_time + 1;
 			int64_t nps = result * 1000 / elapsed_time;
-			cout << "nodes : " << result << endl;
-			cout << "time  : " << elapsed_time << endl;
-			cout << "nps   : " << nps << endl;
+			cout << "time " << elapsed_time;
+			cout << " nodes " << result;
+			cout << " nps " << nps << endl;
 			continue;
 		}
 		if (word == "go")

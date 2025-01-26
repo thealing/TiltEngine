@@ -2,7 +2,6 @@
 
 #include "bitboards.hpp"
 
-#include <array>
 #include <algorithm>
 
 class Bitmasks

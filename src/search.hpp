@@ -108,8 +108,9 @@ public:
 	{
 		_node_count = 0;
 		_score = 0;
+		_depth = 0;
 		_move = Move{};
-		for (_depth = 1; _depth <= _depth_limit; _depth++)
+		for (int depth = 1; depth <= _depth_limit; depth++)
 		{
 			int window = 40;
 			int iterations = 0;
@@ -119,7 +120,7 @@ public:
 				iterations++;
 				Score min_score = new_score - window;
 				Score max_score = new_score + window;
-				new_score = search(_depth, min_score, max_score);
+				new_score = search(depth, min_score, max_score);
 				if (new_score <= min_score || new_score >= max_score)
 				{
 					window *= 2;
@@ -134,6 +135,7 @@ public:
 				break;
 			}
 			_score = new_score;
+			_depth = depth;
 			_move = get_current_position().extract_move(transposition_table.get_entry(_hash_stack[_ply]).move);
 			print_info();
 			if (_think_time != 0 && get_time() - _start_time >= _think_time * iterations)
@@ -168,11 +170,24 @@ public:
 		{
 			if (current_depth > 0)
 			{
+				// contempt to avoid draws
+				Score draw_score = current_depth % 2 == 0 ? -50 : 50;
+				if (true)
+				{
+					if (position.halfmove_clock >= 90)
+					{
+						return draw_score;
+					}
+				}
+				else
+				{
+					draw_score = 0;
+				}
 				for (int i = _ply - position.halfmove_clock; i < _ply; i++)
 				{
 					if (_hash_stack[i] == hash)
 					{
-						return SCORE_DRAW;
+						return draw_score;
 					}
 				}
 			}
@@ -189,8 +204,6 @@ public:
 			{
 				if (position_score >= beta)
 				{
-					// fail-hard would gain 20 ELO... why...
-					// return beta;
 					return position_score;
 				}
 				alpha = position_score;
@@ -289,7 +302,12 @@ public:
 			{
 				move_scores[i] = 6000000;
 			}
-			move_scores[i] += history_heuristic.get_move_value(moves[i]);
+			move_scores[i] += history_heuristic.get_value(moves[i]);
+			if (false)
+			{
+				static Random random(get_time());
+				move_scores[i] += random.next() % 97;
+			}
 		}
 		for (int i = 0; i < move_count; i++)
 		{
@@ -311,7 +329,6 @@ public:
 				continue;
 			}
 			_mm_prefetch((const char*)&transposition_table.get_entry(_hash_stack[_ply]), _MM_HINT_ENTA);
-			_move_stack[_ply - 1] = move;
 			legal_move_count++;
 			if (move.captured_piece == PIECE_NONE)
 			{
@@ -350,14 +367,14 @@ public:
 			if (score >= beta)
 			{
 				int delta = remaining_depth * remaining_depth;
-				history_heuristic.add_move_value(move, delta);
+				history_heuristic.add_value(move, delta);
 				for (int j = 0; j < i; j++)
 				{
 					if (move_scores[j] == -1)
 					{
 						continue;
 					}
-					history_heuristic.add_move_value(moves[j], -delta);
+					history_heuristic.add_value(moves[j], -delta);
 				}
 				score_type = SCORE_TYPE_LOWER;
 				break;
@@ -431,6 +448,10 @@ private:
 
 	inline bool can_continue()
 	{
+		if (_depth == 0)
+		{
+			return true;
+		}
 		if (_node_count >= _node_limit)
 		{
 			return false;
@@ -512,5 +533,6 @@ private:
 	int _depth;
 	Score _score;
 	Move _move;
-	Move _move_stack[MAX_PLY];
 };
+
+inline Search search;

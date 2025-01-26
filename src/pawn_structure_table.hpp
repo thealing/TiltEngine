@@ -3,15 +3,19 @@
 #include "profiler.hpp"
 #include "position.hpp"
 
-#include <vector>
+#include <string.h>
 
 struct PawnStructureEntry
 {
 	Bitboard pawn_masks[COLOR_COUNT];
 	Bitboard move_masks[COLOR_COUNT];
+	Bitboard move_span_masks[COLOR_COUNT];
 	Bitboard attack_masks[COLOR_COUNT];
+	Bitboard attack_span_masks[COLOR_COUNT];
 	Bitboard passed_masks[COLOR_COUNT];
 	Bitboard doubled_masks[COLOR_COUNT];
+	Bitboard isolated_masks[COLOR_COUNT];
+	Bitboard backward_masks[COLOR_COUNT];
 
 	inline void init(const Position& position)
 	{
@@ -25,25 +29,32 @@ struct PawnStructureEntry
 	inline void init_basic(const Position& position)
 	{
 		Bitboard pawn_mask = position.get_mask(PIECE_PAWN, color);
+		Bitboard move_mask = shift_forward<color>(pawn_mask);
+		Bitboard attack_mask = shift_forward_left<color>(pawn_mask) | shift_forward_right<color>(pawn_mask);
 		pawn_masks[color] = pawn_mask;
-		move_masks[color] = shift_forward<color>(pawn_mask);
-		attack_masks[color] = shift_forward_left<color>(pawn_mask) | shift_forward_right<color>(pawn_mask);
+		move_masks[color] = move_mask;
+		move_span_masks[color] = span_forward<color>(move_mask);
+		attack_masks[color] = attack_mask;
+		attack_span_masks[color] = span_forward<color>(attack_mask);
 	}
 
 	template<Color color>
 	inline void init_extra(const Position& position)
 	{
 		constexpr Color enemy = flip_color(color);
-		Bitboard behind_mask = shift_backward<color>(pawn_masks[color]);
-		behind_mask |= shift_backward<color, 1>(behind_mask);
-		behind_mask |= shift_backward<color, 2>(behind_mask);
-		behind_mask |= shift_backward<color, 4>(behind_mask);
-		Bitboard enemy_span_mask = pawn_masks[enemy] | attack_masks[enemy];
-		enemy_span_mask |= shift_forward<enemy, 1>(enemy_span_mask);
-		enemy_span_mask |= shift_forward<enemy, 2>(enemy_span_mask);
-		enemy_span_mask |= shift_forward<enemy, 4>(enemy_span_mask);
-		passed_masks[color] = pawn_masks[color] & ~behind_mask & ~enemy_span_mask;
-		doubled_masks[color] = pawn_masks[color] & behind_mask;
+		Bitboard pawn_mask = pawn_masks[color];
+		Bitboard behind_mask = shift_backward<color>(pawn_mask);
+		behind_mask = span_backward<color>(behind_mask);
+		Bitboard controlled_mask = move_span_masks[enemy] | attack_span_masks[enemy];
+		Bitboard adjacent_mask = shift_left(pawn_mask) | shift_right(pawn_mask);
+		adjacent_mask = span_forward<color>(adjacent_mask) | span_backward<color>(adjacent_mask);
+		Bitboard stopped_mask = attack_masks[enemy] & ~attack_span_masks[color];
+		stopped_mask = shift_backward<color>(stopped_mask);
+		stopped_mask = span_backward<color>(stopped_mask);
+		passed_masks[color] = pawn_mask & ~behind_mask & ~controlled_mask;
+		doubled_masks[color] = pawn_mask & behind_mask;
+		isolated_masks[color] = pawn_mask & ~adjacent_mask & controlled_mask & ~behind_mask;
+		backward_masks[color] = pawn_mask & adjacent_mask & stopped_mask & ~shift_backward<color>(position.pieces[PIECE_PAWN]);
 	}
 };
 
