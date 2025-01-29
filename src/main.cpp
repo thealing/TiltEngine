@@ -1,151 +1,78 @@
-#include "search.hpp"
+#include "position.hpp"
+#include "random.hpp"
 
 #include <iostream>
-#include <string>
-#include <sstream>
+#include <vector>
 
-using std::cin;
-using std::cout;
-using std::getline;
-using std::endl;
-using std::string;
-using std::stringstream;
+using namespace std;
+
+template<Color color>
+inline int64_t perft(const Position& position, int depth, Move* moves)
+{
+	constexpr Color enemy = flip_color(color);
+	Move* end = position.generate_moves<color>(moves);
+	if (depth == 1)
+	{
+		return end - moves;
+	}
+	int64_t result = 0;
+	Position next_position;
+	for (Move* move = moves; move != end; move++)
+	{
+		position.play_move<color>(&next_position, *move);
+		result += perft<enemy>(next_position, depth - 1, end);
+	}
+	return result;
+}
+
+inline int64_t perft(const Position& position, int depth, Move* moves)
+{
+	switch (position.get_current_color())
+	{
+		case COLOR_WHITE:
+			return perft<COLOR_WHITE>(position, depth, moves);
+		case COLOR_BLACK:
+			return perft<COLOR_BLACK>(position, depth, moves);
+		default:
+			return false;
+	}
+}
+
+inline int64_t perft(const Position& position, int depth)
+{
+	Move* moves = new Move[100 * depth];
+	int64_t result = perft(position, depth, moves);
+	delete[] moves;
+	return result;
+}
 
 int main()
 {
-	stringstream input(
-		""
-		//"position fen 6k1/7p/6p1/8/8/4K1P1/6q1/8 w - - 4 166\n"
-		//"go\n"
-	);
-	string line;
-	while (getline(input, line) || getline(cin, line))
-	{
-		stringstream ss(line);
-		string word;
-		ss >> word;
-		if (word == "quit")
-		{
-			break;
-		}
-		if (word == "uci")
-		{
-			cout << "id name TiltEngine" << endl;
-			cout << "id author Thealing" << endl;
-			cout << "uciok" << endl;
-			continue;
-		}
-		if (word == "isready")
-		{
-			cout << "readyok" << endl;
-			continue;
-		}
-		if (word == "ucinewgame")
-		{
-			search.new_game();
-			continue;
-		}
-		if (word == "position")
-		{
-			ss >> word;
-			if (word == "fen")
-			{
-				string fen;
-				while (ss >> word && word != "moves")
-				{
-					fen += word + ' ';
-				}
-				search.set_fen(fen.c_str());
-			}
-			else
-			{
-				search.set_fen(Game::START_FEN);
-			}
-			while (ss.good() && word != "moves")
-			{
-				ss >> word;
-			}
-			while (ss >> word)
-			{
-				Move move = search.parse_move(word.c_str());
-				search.play_move(move);
-			}
-			continue;
-		}
-		if (word == "perft")
-		{
-			int depth;
-			ss >> depth;
-			Time start_time = get_time();
-			int64_t result = search.perft(depth);
-			Time end_time = get_time();
-			Time elapsed_time = end_time - start_time + 1;
-			int64_t nps = result * 1000 / elapsed_time;
-			cout << "time " << elapsed_time;
-			cout << " nodes " << result;
-			cout << " nps " << nps << endl;
-			continue;
-		}
-		if (word == "go")
-		{
-			search.stop();
-			int depth = 0;
-			int64_t nodes = 0;
-			Time move_time = 0;
-			Time times[COLOR_COUNT] = {};
-			Time increments[COLOR_COUNT] = {};
-			int moves_to_go = 0;
-			while (ss >> word)
-			{
-				if (word == "depth")
-				{
-					ss >> depth;
-				}
-				if (word == "nodes")
-				{
-					ss >> nodes;
-				}
-				if (word == "movetime")
-				{
-					ss >> move_time;
-				}
-				if (word == "wtime")
-				{
-					ss >> times[COLOR_WHITE];
-				}
-				if (word == "btime")
-				{
-					ss >> times[COLOR_BLACK];
-				}
-				if (word == "winc")
-				{
-					ss >> increments[COLOR_WHITE];
-				}
-				if (word == "binc")
-				{
-					ss >> increments[COLOR_BLACK];
-				}
-				if (word == "movestogo")
-				{
-					ss >> moves_to_go;
-				}
-			}
-			if (times[COLOR_WHITE] != 0 || times[COLOR_BLACK] != 0)
-			{
-				search.start(times, increments, moves_to_go);
-			}
-			else
-			{
-				search.start(depth, nodes, move_time);
-			}
-			continue;
-		}
-		if (word == "stop")
-		{
-			search.stop();
-			continue;
-		}
-		cout << "unknown command" << endl;
+	while (true) {
+
+
+		string s = "3rkb1r/8/n3q3/8/8/4R2N/8/RQB1K3 w - - 0 1";
+
+		Position p;
+		p.set_fen(s);
+
+		Move moves[999];
+		Move* end = p.generate_moves<COLOR_WHITE>(moves);
+
+		cout << end - moves << endl;
+
+		int t=T();
+		auto res =perft(p, 6);
+		t=T()-t;
+
+		cout << res << " "<<t<<" "<<res/(t+1) << endl;
+
+		cout<<endl;
+		cout<<endl;
+		cout<<endl;
+		cout<<endl;
+
 	}
+
 	return 0;
 }

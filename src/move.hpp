@@ -1,10 +1,8 @@
 #pragma once
 
-#include "pieces.hpp"
-#include "squares.hpp"
-#include "scores.hpp"
+#include "types.hpp"
 
-#include <string.h>
+#include <memory.h>
 
 using MoveType = int8_t;
 
@@ -26,7 +24,7 @@ enum : MoveType
 	MOVE_TYPE_CASTLING_WQ,
 	MOVE_TYPE_CASTLING_BK,
 	MOVE_TYPE_CASTLING_BQ,
-	MOVE_TYPE_COUNT
+	MOVE_TYPE_COUNT,
 };
 
 struct Move
@@ -35,50 +33,22 @@ struct Move
 	Square dst_square;
 	MoveType type;
 	Piece captured_piece;
-
-	explicit inline operator uint16_t()
-	{
-		return (uint16_t)src_square | (uint16_t)dst_square << 6 | (uint16_t)type << 12;
-	}
-
-	inline Piece get_moved_piece() const
-	{
-		switch (type)
-		{
-			case MOVE_TYPE_DOUBLE:
-			case MOVE_TYPE_EN_PASSANT:
-			case MOVE_TYPE_PROMOTION_Q:
-			case MOVE_TYPE_PROMOTION_R:
-			case MOVE_TYPE_PROMOTION_B:
-			case MOVE_TYPE_PROMOTION_N:
-				return PIECE_PAWN;
-			case MOVE_TYPE_CASTLING_WK:
-			case MOVE_TYPE_CASTLING_WQ:
-			case MOVE_TYPE_CASTLING_BK:
-			case MOVE_TYPE_CASTLING_BQ:
-				return PIECE_KING;
-			default:
-				return type;
-		}
-	}
-
-	inline bool is_promotion() const
-	{
-		switch (type)
-		{
-			case MOVE_TYPE_PROMOTION_Q:
-			case MOVE_TYPE_PROMOTION_R:
-			case MOVE_TYPE_PROMOTION_B:
-			case MOVE_TYPE_PROMOTION_N:
-				return true;
-			default:
-				return false;
-		} 
-	}
-
-	inline bool operator==(const Move& other) const
-	{
-		static_assert(sizeof(Move) == sizeof(int32_t));
-		return *(int32_t*)this == *(int32_t*)&other;
-	}
 };
+
+inline std::ostream& operator<<(std::ostream& os, const Move& move)
+{
+	format_square(os, move.src_square);
+	format_square(os, move.dst_square);
+	switch (move.type) {
+		case MOVE_TYPE_PROMOTION_Q:
+			return os << 'q';
+		case MOVE_TYPE_PROMOTION_R:
+			return os << 'r';
+		case MOVE_TYPE_PROMOTION_B:
+			return os << 'b';
+		case MOVE_TYPE_PROMOTION_N:
+			return os << 'n';
+		default:
+			return os;
+	}
+}
