@@ -162,7 +162,6 @@ public:
 	template<Color color, bool quiescence>
 	inline Score search(int current_depth, int remaining_depth, Score alpha, Score beta)
 	{
-		// TODO: what a mess...
 		_node_count++;
 		Hash hash = _hash_stack[_ply];
 		const Position& position = _position_stack[_ply];
@@ -170,24 +169,15 @@ public:
 		{
 			if (current_depth > 0)
 			{
-				// contempt to avoid draws
-				Score draw_score = current_depth % 2 == 0 ? -50 : 50;
-				if (true)
+				if (position.halfmove_clock >= 100)
 				{
-					if (position.halfmove_clock >= 90)
-					{
-						return draw_score;
-					}
-				}
-				else
-				{
-					draw_score = 0;
+					return SCORE_DRAW;
 				}
 				for (int i = _ply - position.halfmove_clock; i < _ply; i++)
 				{
 					if (_hash_stack[i] == hash)
 					{
-						return draw_score;
+						return SCORE_DRAW;
 					}
 				}
 			}
@@ -219,11 +209,11 @@ public:
 			lower = (entry.type & SCORE_TYPE_LOWER) != 0;
 			upper = (entry.type & SCORE_TYPE_UPPER) != 0;
 			entry_score = entry.score;
-			if (entry_score >= SCORE_MATE - MAX_DEPTH)
+			if (entry_score >= SCORE_MATE - MAX_PLY)
 			{
 				entry_score -= current_depth;
 			}
-			else if (entry_score <= -SCORE_MATE + MAX_DEPTH)
+			else if (entry_score <= -SCORE_MATE + MAX_PLY)
 			{
 				entry_score += current_depth;
 			}
@@ -303,11 +293,6 @@ public:
 				move_scores[i] = 6000000;
 			}
 			move_scores[i] += history_heuristic.get_value(moves[i]);
-			if (false)
-			{
-				static Random random(get_time());
-				move_scores[i] += random.next() % 97;
-			}
 		}
 		for (int i = 0; i < move_count; i++)
 		{
@@ -400,20 +385,20 @@ public:
 			score_type = SCORE_TYPE_EXACT;
 		}
 		entry_score = best_score;
-		if (entry_score >= SCORE_MATE - MAX_DEPTH)
+		if (entry_score >= SCORE_MATE - MAX_PLY)
 		{
 			entry_score += current_depth;
 		}
-		else if (entry_score <= -SCORE_MATE + MAX_DEPTH)
+		else if (entry_score <= -SCORE_MATE + MAX_PLY)
 		{
 			entry_score -= current_depth;
 		}
-		// should age be ignored when the PV changes!?
-		entry.age++;
-		if (hit || legal_move_count == 0 || remaining_depth > entry.depth - entry.age)
-		{
-			entry = TranspositionEntry{ hash, int16_t(entry_score), 0, (uint16_t)best_move, score_type, int8_t(remaining_depth) };
-		}
+		entry = TranspositionEntry{ hash, int16_t(entry_score), 0, (uint16_t)best_move, score_type, int8_t(remaining_depth) };
+		//entry.age++;
+		//if (hit || legal_move_count == 0 || remaining_depth > entry.depth - entry.age)
+		//{
+		//	entry = TranspositionEntry{ hash, int16_t(entry_score), 0, (uint16_t)best_move, score_type, int8_t(remaining_depth) };
+		//}
 		return best_score;
 	}
 
@@ -519,7 +504,6 @@ private:
 	inline void print_move()
 	{
 		std::cout << "bestmove " << _move << std::endl;
-		//std::cout << debug_counters[0] << ' ' << debug_counters[1] << std::endl;
 	}
 
 private:
