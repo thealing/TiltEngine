@@ -106,7 +106,7 @@ struct Position
 			en_passant_square = parse_square(fen);
 			fen += 3;
 		}
-		halfmove_clock = (int8_t)std::min(100, atoi(fen));
+		halfmove_clock = (int8_t)atoi(fen);
 	}
 
 	Square parse_square(const char str[]) const
@@ -220,6 +220,65 @@ struct Position
 		}
 	}
 
+	inline void add_move(Move*& move, Square src_square, Square dst_square, MoveType type, Piece captured_piece) const
+	{
+		move->src_square = src_square;
+		move->dst_square = dst_square;
+		move->type = type;
+		move->captured_piece = captured_piece;
+		move++;
+	}
+
+	inline void add_move(Move*& move, Square src_square, Square dst_square, MoveType type) const
+	{
+		add_move(move, src_square, dst_square, type, PIECE_NONE);
+	}
+
+	inline void add_capture(Move*& move, Square src_square, Square dst_square, MoveType type) const
+	{
+		add_move(move, src_square, dst_square, type, get_piece(dst_square));
+	}
+
+	inline void add_pawn_move(Move*& move, Square src_square, Square dst_square) const
+	{
+		add_move(move, src_square, dst_square, PIECE_PAWN, PIECE_NONE);
+	}
+
+	inline void add_pawn_double_move(Move*& move, Square src_square, Square dst_square) const
+	{
+		add_move(move, src_square, dst_square, MOVE_TYPE_DOUBLE, PIECE_NONE);
+	}
+
+	inline void add_pawn_capture(Move*& move, Square src_square, Square dst_square) const
+	{
+		add_move(move, src_square, dst_square, PIECE_PAWN, get_piece(dst_square));
+	}
+
+	inline void add_pawn_promotion_moves(Move*& move, Square src_square, Square dst_square) const
+	{
+		for (MoveType type = MOVE_TYPE_PROMOTION_Q; type <= MOVE_TYPE_PROMOTION_N; type++)
+		{
+			move->src_square = src_square;
+			move->dst_square = dst_square;
+			move->type = type;
+			move->captured_piece = PIECE_NONE;
+			move++;
+		}
+	}
+
+	inline void add_pawn_promotion_captures(Move*& move, Square src_square, Square dst_square) const
+	{
+		Piece captured_piece = get_piece(dst_square);
+		for (MoveType type = MOVE_TYPE_PROMOTION_Q; type <= MOVE_TYPE_PROMOTION_N; type++)
+		{
+			move->src_square = src_square;
+			move->dst_square = dst_square;
+			move->type = type;
+			move->captured_piece = captured_piece;
+			move++;
+		}
+	}
+
 	template<Color color, bool captures_only>
 	inline Move* generate_moves(Move* move) const
 	{
@@ -245,11 +304,7 @@ struct Position
 			{
 				Square dst_square = pop_square(dst_mask);
 				Square src_square = move_backward<color>(dst_square);
-				move->src_square = src_square;
-				move->dst_square = dst_square;
-				move->type = MOVE_TYPE_PAWN;
-				move->captured_piece = PIECE_NONE;
-				move++;
+				add_pawn_move(move, src_square, dst_square);
 			}
 			dst_mask = pawn_mask & starting_rank_mask;
 			dst_mask = shift_forward<color>(dst_mask);
@@ -260,11 +315,7 @@ struct Position
 			{
 				Square dst_square = pop_square(dst_mask);
 				Square src_square = move_backward<color, 2>(dst_square);
-				move->src_square = src_square;
-				move->dst_square = dst_square;
-				move->type = MOVE_TYPE_DOUBLE;
-				move->captured_piece = PIECE_NONE;
-				move++;
+				add_pawn_double_move(move, src_square, dst_square);
 			}
 		}
 		dst_mask = pawn_move_mask & promotion_rank_mask;
@@ -272,66 +323,35 @@ struct Position
 		{
 			Square dst_square = pop_square(dst_mask);
 			Square src_square = move_backward<color>(dst_square);
-			for (MoveType type = MOVE_TYPE_PROMOTION_Q; type <= MOVE_TYPE_PROMOTION_N; type++)
-			{
-				move->src_square = src_square;
-				move->dst_square = dst_square;
-				move->type = type;
-				move->captured_piece = PIECE_NONE;
-				move++;
-			}
+			add_pawn_promotion_moves(move, src_square, dst_square);
 		}
 		dst_mask = pawn_left_capture_mask & ~promotion_rank_mask;
 		while (dst_mask != 0)
 		{
 			Square dst_square = pop_square(dst_mask);
 			Square src_square = move_backward_right<color>(dst_square);
-			move->src_square = src_square;
-			move->dst_square = dst_square;
-			move->type = MOVE_TYPE_PAWN;
-			move->captured_piece = get_piece(dst_square);
-			move++;
+			add_pawn_capture(move, src_square, dst_square);
 		}
 		dst_mask = pawn_right_capture_mask & ~promotion_rank_mask;
 		while (dst_mask != 0)
 		{
 			Square dst_square = pop_square(dst_mask);
 			Square src_square = move_backward_left<color>(dst_square);
-			move->src_square = src_square;
-			move->dst_square = dst_square;
-			move->type = MOVE_TYPE_PAWN;
-			move->captured_piece = get_piece(dst_square);
-			move++;
+			add_pawn_capture(move, src_square, dst_square);
 		}
 		dst_mask = pawn_left_capture_mask & promotion_rank_mask;
 		while (dst_mask != 0)
 		{
 			Square dst_square = pop_square(dst_mask);
 			Square src_square = move_backward_right<color>(dst_square);
-			Piece captured_piece = get_piece(dst_square);
-			for (MoveType type = MOVE_TYPE_PROMOTION_Q; type <= MOVE_TYPE_PROMOTION_N; type++)
-			{
-				move->src_square = src_square;
-				move->dst_square = dst_square;
-				move->type = type;
-				move->captured_piece = captured_piece;
-				move++;
-			}
+			add_pawn_promotion_captures(move, src_square, dst_square);
 		}
 		dst_mask = pawn_right_capture_mask & promotion_rank_mask;
 		while (dst_mask != 0)
 		{
 			Square dst_square = pop_square(dst_mask);
 			Square src_square = move_backward_left<color>(dst_square);
-			Piece captured_piece = get_piece(dst_square);
-			for (MoveType type = MOVE_TYPE_PROMOTION_Q; type <= MOVE_TYPE_PROMOTION_N; type++)
-			{
-				move->src_square = src_square;
-				move->dst_square = dst_square;
-				move->type = type;
-				move->captured_piece = captured_piece;
-				move++;
-			}
+			add_pawn_promotion_captures(move, src_square, dst_square);
 		}
 		if (en_passant_square != SQUARE_NONE)
 		{
@@ -391,22 +411,14 @@ struct Position
 					while (dst_mask != 0)
 					{
 						Square dst_square = pop_square(dst_mask);
-						move->src_square = src_square;
-						move->dst_square = dst_square;
-						move->type = piece;
-						move->captured_piece = PIECE_NONE;
-						move++;
+						add_move(move, src_square, dst_square, piece);
 					}
 				}
 				dst_mask = move_mask & enemy_mask;
 				while (dst_mask != 0)
 				{
 					Square dst_square = pop_square(dst_mask);
-					move->src_square = src_square;
-					move->dst_square = dst_square;
-					move->type = piece;
-					move->captured_piece = get_piece(dst_square);
-					move++;
+					add_capture(move, src_square, dst_square, piece);
 				}
 			}
 		}

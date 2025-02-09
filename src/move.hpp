@@ -81,4 +81,9 @@ struct Move
 		static_assert(sizeof(Move) == sizeof(int32_t));
 		return *(int32_t*)this == *(int32_t*)&other;
 	}
+
+	inline bool operator!=(const Move& other) const
+	{
+		return !(*this == other);
+	}
 };

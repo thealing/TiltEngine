@@ -207,6 +207,16 @@ inline constexpr Bitboard shift_forward_right(Bitboard bitboard)
 	return MovesHelper<color>::shift_forward_right(bitboard) & ~get_file_mask(FILE_A);
 }
 
+inline constexpr Bitboard shift_left(Bitboard bitboard)
+{
+	return (bitboard >> 1) & ~get_file_mask(FILE_H);
+}
+
+inline constexpr Bitboard shift_right(Bitboard bitboard)
+{
+	return (bitboard << 1) & ~get_file_mask(FILE_A);
+}
+
 template<Color color>
 inline constexpr Bitboard span_forward(Bitboard bitboard)
 {
@@ -223,14 +233,4 @@ inline constexpr Bitboard span_backward(Bitboard bitboard)
 	bitboard |= shift_backward<color, 2>(bitboard);
 	bitboard |= shift_backward<color, 4>(bitboard);
 	return bitboard;
-}
-
-inline constexpr Bitboard shift_left(Bitboard bitboard)
-{
-	return (bitboard >> 1) & ~get_file_mask(FILE_H);
-}
-
-inline constexpr Bitboard shift_right(Bitboard bitboard)
-{
-	return (bitboard << 1) & ~get_file_mask(FILE_A);
 }
