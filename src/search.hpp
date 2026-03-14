@@ -393,12 +393,7 @@ public:
 		{
 			entry_score -= current_depth;
 		}
-		entry = TranspositionEntry{ hash, int16_t(entry_score), 0, (uint16_t)best_move, score_type, int8_t(remaining_depth) };
-		//entry.age++;
-		//if (hit || legal_move_count == 0 || remaining_depth > entry.depth - entry.age)
-		//{
-		//	entry = TranspositionEntry{ hash, int16_t(entry_score), 0, (uint16_t)best_move, score_type, int8_t(remaining_depth) };
-		//}
+		entry = TranspositionEntry{ hash, entry_score, (uint16_t)best_move, score_type, int8_t(remaining_depth) };
 		return best_score;
 	}
 

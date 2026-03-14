@@ -13,13 +13,8 @@ using std::stringstream;
 
 int main()
 {
-	stringstream input(
-		""
-		//"position fen 6k1/7p/6p1/8/8/4K1P1/6q1/8 w - - 4 166\n"
-		//"go\n"
-	);
 	string line;
-	while (getline(input, line) || getline(cin, line))
+	while (getline(cin, line))
 	{
 		stringstream ss(line);
 		string word;

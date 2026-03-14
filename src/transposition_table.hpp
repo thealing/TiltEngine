@@ -15,8 +15,7 @@ enum ScoreType : int8_t
 struct TranspositionEntry
 {
 	uint64_t hash;
-	int16_t score;
-	int16_t age;
+	Score score;
 	uint16_t move;
 	int8_t type;
 	int8_t depth;
@@ -41,11 +40,6 @@ public:
 	{
 		return _entries[hash & _and];
 	}
-
-	//inline void set_entry(Hash hash, Move move, Score score, ScoreType type, int8_t depth)
-	//{
-	//	_entries[hash & _and] = TranspositionEntry{ hash, score, (uint16_t)move, type, depth };
-	//}
 
 private:
 	Hash _and;
