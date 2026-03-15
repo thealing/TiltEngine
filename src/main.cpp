@@ -25,8 +25,8 @@ int main()
 		}
 		if (word == "uci")
 		{
-			cout << "id name TiltEngine" << endl;
-			cout << "id author Thealing" << endl;
+			cout << "id name Tilt Engine" << endl;
+			cout << "id author T.E.D." << endl;
 			cout << "uciok" << endl;
 			continue;
 		}
