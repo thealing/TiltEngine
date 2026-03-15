@@ -6,7 +6,6 @@ It supports the standard UCI protocol, allowing it to be used with any common ch
 The playing strength is around 2650 ELO against other engines on CCRL.
 
 ## Highlighted Features
-
 - Bitboard move generation
   - Magic bitboards
 - Transposition table
@@ -17,7 +16,6 @@ The playing strength is around 2650 ELO against other engines on CCRL.
   - Principal variation
   
 ## Other Features
-
 - Search
   - Alpha-beta pruning
   - Quiescence search
