@@ -179,7 +179,7 @@
     <ClInclude Include="src\hasher.hpp" />
     <ClInclude Include="src\game.hpp" />
     <ClInclude Include="src\move.hpp" />
-    <ClInclude Include="src\moves_helper.hpp" />
+    <ClInclude Include="src\move_helper.hpp" />
     <ClInclude Include="src\position.hpp" />
     <ClInclude Include="src\sliders.hpp" />
     <ClInclude Include="src\bitboards.hpp" />

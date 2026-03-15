@@ -44,7 +44,7 @@
     <ClInclude Include="src\move.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\moves_helper.hpp">
+    <ClInclude Include="src\move_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\position.hpp">

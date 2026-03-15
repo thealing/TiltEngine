@@ -4,7 +4,7 @@
 #include "bitboards.hpp"
 
 template<Color color>
-struct MovesHelper
+struct MoveHelper
 {
 	static constexpr Rank get_promotion_rank();
 
@@ -32,7 +32,7 @@ struct MovesHelper
 };
 
 template<>
-struct MovesHelper<COLOR_WHITE>
+struct MoveHelper<COLOR_WHITE>
 {
 	static constexpr Rank get_promotion_rank()
 	{
@@ -90,7 +90,7 @@ struct MovesHelper<COLOR_WHITE>
 };
 
 template<>
-struct MovesHelper<COLOR_BLACK>
+struct MoveHelper<COLOR_BLACK>
 {
 	static constexpr Rank get_promotion_rank()
 	{
@@ -150,61 +150,61 @@ struct MovesHelper<COLOR_BLACK>
 template<Color color>
 inline constexpr Rank get_promotion_rank()
 {
-	return MovesHelper<color>::get_promotion_rank();
+	return MoveHelper<color>::get_promotion_rank();
 }
 
 template<Color color>
 inline constexpr Rank get_starting_rank()
 {
-	return MovesHelper<color>::get_starting_rank();
+	return MoveHelper<color>::get_starting_rank();
 }
 
 template<Color color, int Amount = 1>
 inline constexpr Square move_forward(Square square)
 {
-	return MovesHelper<color>::template move_forward<Amount>(square);
+	return MoveHelper<color>::template move_forward<Amount>(square);
 }
 
 template<Color color, int Amount = 1>
 inline constexpr Square move_backward(Square square)
 {
-	return MovesHelper<color>::template move_backward<Amount>(square);
+	return MoveHelper<color>::template move_backward<Amount>(square);
 }
 
 template<Color color>
 inline constexpr Square move_backward_left(Square square)
 {
-	return MovesHelper<color>::move_backward_left(square);
+	return MoveHelper<color>::move_backward_left(square);
 }
 
 template<Color color>
 inline constexpr Square move_backward_right(Square square)
 {
-	return MovesHelper<color>::move_backward_right(square);
+	return MoveHelper<color>::move_backward_right(square);
 }
 
 template<Color color, int Amount = 1>
 inline constexpr Bitboard shift_forward(Bitboard bitboard)
 {
-	return MovesHelper<color>::template shift_forward<Amount>(bitboard);
+	return MoveHelper<color>::template shift_forward<Amount>(bitboard);
 }
 
 template<Color color, int Amount = 1>
 inline constexpr Bitboard shift_backward(Bitboard bitboard)
 {
-	return MovesHelper<color>::template shift_backward<Amount>(bitboard);
+	return MoveHelper<color>::template shift_backward<Amount>(bitboard);
 }
 
 template<Color color>
 inline constexpr Bitboard shift_forward_left(Bitboard bitboard)
 {
-	return MovesHelper<color>::shift_forward_left(bitboard) & ~get_file_mask(FILE_H);
+	return MoveHelper<color>::shift_forward_left(bitboard) & ~get_file_mask(FILE_H);
 }
 
 template<Color color>
 inline constexpr Bitboard shift_forward_right(Bitboard bitboard)
 {
-	return MovesHelper<color>::shift_forward_right(bitboard) & ~get_file_mask(FILE_A);
+	return MoveHelper<color>::shift_forward_right(bitboard) & ~get_file_mask(FILE_A);
 }
 
 inline constexpr Bitboard shift_left(Bitboard bitboard)
