@@ -8,13 +8,16 @@ The playing strength is around 2650 ELO against other engines on CCRL.
 ## Highlighted Features
 
 - Bitboard move generation
-- Tapered evaluation
+  - Magic bitboards
 - Transposition table
+  - Zobrist hashing
+  - Prefetch
 - Iterative deepening
   - Aspiration windows
   - Principal variation
   
 ## Other Features
+
 - Search
   - Alpha-beta pruning
   - Quiescence search
@@ -23,17 +26,15 @@ The playing strength is around 2650 ELO against other engines on CCRL.
   - Razoring
   - Futility pruning
 - Evaluation
+  - Tapered evaluation
   - Piece-square tables
   - Mobility scoring
   - Pawn structure analysis
   - Pawn hash-table cache
 - UCI protocol support
-  - Time management
-  - Fixed move time
-  - Fixed depth search
-  - Fixed node search
-- Technical features
-  - Zobrist hashing
-  - Magic bitboards
   - Asynchronous search
-  - Perft support
+  - Perft command
+  - Time management
+  - Fixed depth
+  - Fixed move time
+  - Fixed node count
