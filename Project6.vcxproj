@@ -172,7 +172,6 @@
     <ClInclude Include="src\hash.hpp" />
     <ClInclude Include="src\history_heuristic.hpp" />
     <ClInclude Include="src\pawn_structure_table.hpp" />
-    <ClInclude Include="src\profiler.hpp" />
     <ClInclude Include="src\search.hpp" />
     <ClInclude Include="src\evaluator.hpp" />
     <ClInclude Include="src\scores.hpp" />
@@ -185,7 +184,6 @@
     <ClInclude Include="src\bitboards.hpp" />
     <ClInclude Include="src\bitmasks.hpp" />
     <ClInclude Include="src\pieces.hpp" />
-    <ClInclude Include="src\random.hpp" />
     <ClInclude Include="src\squares.hpp" />
     <ClInclude Include="src\values.hpp" />
     <ClInclude Include="src\time.hpp" />

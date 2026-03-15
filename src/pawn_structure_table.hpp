@@ -1,6 +1,5 @@
 #pragma once
 
-#include "profiler.hpp"
 #include "position.hpp"
 
 #include <string.h>
