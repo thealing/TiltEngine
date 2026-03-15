@@ -313,7 +313,7 @@ public:
 				move_scores[i] = -1;
 				continue;
 			}
-			_mm_prefetch((const char*)&transposition_table.get_entry(_hash_stack[_ply]), _MM_HINT_ENTA);
+			_mm_prefetch((const char*)&transposition_table.get_entry(_hash_stack[_ply]), _MM_HINT_T0);
 			legal_move_count++;
 			if (move.captured_piece == PIECE_NONE)
 			{
